@@ -1,28 +1,103 @@
-<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edu Platform</title>
 
-  <!-- Home -->
-  <symbol id="icon-home" viewBox="0 0 24 24">
-    <path fill="currentColor" d="M12 3l9 8h-3v10h-5v-6H11v6H6V11H3l9-8z"/>
-  </symbol>
+  <style>
+    /* ✅ CSS */
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      margin: 0;
+    }
 
-  <!-- Courses -->
-  <symbol id="icon-courses" viewBox="0 0 24 24">
-    <path fill="currentColor" d="M4 6h16v2H4V6zm0 4h16v2H4v-2zm0 4h10v2H4v-2z"/>
-  </symbol>
+    .navbar {
+      display: flex;
+      gap: 25px;
+      padding: 15px 30px;
+      background: #020617;
+      align-items: center;
+    }
 
-  <!-- Students -->
-  <symbol id="icon-students" viewBox="0 0 24 24">
-    <path fill="currentColor" d="M12 12c2.2 0 4-1.8 4-4S14.2 4 12 4 8 5.8 8 8s1.8 4 4 4zm0 2c-3.3 0-6 2-6 4v2h12v-2c0-2-2.7-4-6-4z"/>
-  </symbol>
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: #cbd5f5;
+      transition: 0.2s;
+    }
 
-  <!-- Dashboard -->
-  <symbol id="icon-dashboard" viewBox="0 0 24 24">
-    <path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
-  </symbol>
+    .nav-item:hover {
+      color: #6366f1;
+    }
 
-  <!-- Quiz -->
-  <symbol id="icon-quiz" viewBox="0 0 24 24">
-    <path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1 15h2v2h-2v-2zm2-2h-2c0-3 3-2.8 3-5 0-1.7-1.3-3-3-3s-3 1.3-3 3H8c0-2.8 2.2-5 5-5s5 2.2 5 5c0 3.5-3 3.2-3 5z"/>
-  </symbol>
+    .icon {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      transition: 0.2s;
+    }
 
-</svg>
+    .nav-item:hover .icon {
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ✅ SVG ICONS -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+
+    <symbol id="icon-home" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+        d="M3 10.5L12 3l9 7.5M5 9.5V20h5v-6h4v6h5V9.5"/>
+    </symbol>
+
+    <symbol id="icon-courses" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8"
+        d="M4 6h16M4 12h16M4 18h10"/>
+    </symbol>
+
+    <symbol id="icon-dashboard" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8"
+        d="M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z"/>
+    </symbol>
+
+    <symbol id="icon-quiz" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8"
+        d="M9 9a3 3 0 1 1 6 0c0 2-3 2-3 4M12 17h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z"/>
+    </symbol>
+
+  </svg>
+
+  <!-- ✅ NAVBAR -->
+  <div class="navbar">
+
+    <div class="nav-item">
+      <svg class="icon"><use href="#icon-home"></use></svg>
+      Home
+    </div>
+
+    <div class="nav-item">
+      <svg class="icon"><use href="#icon-courses"></use></svg>
+      Courses
+    </div>
+
+    <div class="nav-item">
+      <svg class="icon"><use href="#icon-dashboard"></use></svg>
+      Dashboard
+    </div>
+
+    <div class="nav-item">
+      <svg class="icon"><use href="#icon-quiz"></use></svg>
+      Quiz
+    </div>
+
+  </div>
+
+</body>
+</html>
