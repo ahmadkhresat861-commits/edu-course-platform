@@ -4,23 +4,60 @@ import heroImg from './assets/hero.png';
 import reactLogo from './assets/react.svg';
 import viteLogo from './assets/vite.svg';
 
-// Navbar
+// Navbar (UPDATED)
 const Navbar = () => {
   const [active, setActive] = useState('home');
+
   return (
-    <nav>
+    <nav className="navbar">
       <h2>EduCourses</h2>
-      <div>
-        {['home', 'courses', 'login', 'contact'].map(section => (
-          <a
-            key={section}
-            href={`#${section}`}
-            className={active === section ? 'active' : ''}
-            onClick={() => setActive(section)}
-          >
-            {section.charAt(0).toUpperCase() + section.slice(1)}
-          </a>
-        ))}
+
+      <div className="nav-links">
+
+        <a
+          href="#home"
+          className={active === 'home' ? 'active nav-item' : 'nav-item'}
+          onClick={() => setActive('home')}
+        >
+          <svg className="icon">
+            <use href="/icons.svg#icon-home"></use>
+          </svg>
+          Home
+        </a>
+
+        <a
+          href="#courses"
+          className={active === 'courses' ? 'active nav-item' : 'nav-item'}
+          onClick={() => setActive('courses')}
+        >
+          <svg className="icon">
+            <use href="/icons.svg#icon-courses"></use>
+          </svg>
+          Courses
+        </a>
+
+        <a
+          href="#login"
+          className={active === 'login' ? 'active nav-item' : 'nav-item'}
+          onClick={() => setActive('login')}
+        >
+          <svg className="icon">
+            <use href="/icons.svg#icon-dashboard"></use>
+          </svg>
+          Login
+        </a>
+
+        <a
+          href="#contact"
+          className={active === 'contact' ? 'active nav-item' : 'nav-item'}
+          onClick={() => setActive('contact')}
+        >
+          <svg className="icon">
+            <use href="/icons.svg#icon-quiz"></use>
+          </svg>
+          Contact
+        </a>
+
       </div>
     </nav>
   );
@@ -58,6 +95,7 @@ const courses = [
 const HeroAndLogin = () => {
   const [fadeIn, setFadeIn] = useState(false);
   useEffect(() => { setFadeIn(true); }, []);
+
   return (
     <section id="home" style={{ opacity: fadeIn ? 1 : 0, transition: 'opacity 1s' }}>
       <div className="hero">
@@ -65,7 +103,9 @@ const HeroAndLogin = () => {
         <img src={reactLogo} width="60" alt="React" />
         <img src={viteLogo} width="60" alt="Vite" />
       </div>
+
       <h1>Learn, Code, and Grow with EduCourses</h1>
+
       <button onClick={() => document.getElementById('courses').scrollIntoView({ behavior: 'smooth' })}>
         Start Learning
       </button>
@@ -85,7 +125,9 @@ const CoursesSection = ({ onViewDetails }) => (
   <section id="courses">
     <h1>Our Courses</h1>
     <div className="courses-container">
-      {courses.map(course => <CourseCard key={course.id} course={course} onViewDetails={onViewDetails} />)}
+      {courses.map(course => (
+        <CourseCard key={course.id} course={course} onViewDetails={onViewDetails} />
+      ))}
     </div>
   </section>
 );
@@ -113,36 +155,28 @@ const ContactSection = () => (
     <div className="contact-info">
       📞 Call us: <a href="tel:+1234567890">+1 234 567 890</a>
     </div>
-
-    <div className="social-icons">
-      <a href="#">📘</a>
-      <a href="#">📸</a>
-      <a href="#">🐦</a>
-      <a href="#">💼</a>
-    </div>
   </section>
 );
 
-// Main App
-function App() {
+// MAIN APP
+export default function App() {
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const handleViewDetails = (course) => setSelectedCourse(course);
-  const handleBack = () => setSelectedCourse(null);
 
   return (
     <div>
       <Navbar />
-      {selectedCourse
-        ? <CourseDetail course={selectedCourse} onBack={handleBack} />
-        : <>
-            <HeroAndLogin />
-            <CoursesSection onViewDetails={handleViewDetails} />
-            <ContactSection />
-          </>
-      }
+
+      {selectedCourse ? (
+        <CourseDetail course={selectedCourse} onBack={() => setSelectedCourse(null)} />
+      ) : (
+        <>
+          <HeroAndLogin />
+          <CoursesSection onViewDetails={setSelectedCourse} />
+          <ContactSection />
+        </>
+      )}
+
       <Footer />
     </div>
   );
 }
-
-export default App;
