@@ -1,24 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import heroImg from './assets/hero.png';
+import reactLogo from './assets/react.svg';
+import viteLogo from './assets/vite.svg';
 
+/* ================= NAVBAR ================= */
 const Navbar = () => {
+  const [active, setActive] = useState('home');
+
   const links = [
-    'home',
-    'courses',
-    'features',
-    'pricing',
-    'contact'
+    { id: 'home', label: 'Home' },
+    { id: 'courses', label: 'Courses' },
+    { id: 'features', label: 'Features' },
+    { id: 'login', label: 'Login' },
+    { id: 'pricing', label: 'Pricing' },
+    { id: 'contact', label: 'Contact' },
   ];
 
   return (
     <nav className="navbar">
-      <div className="logo">EduCourses</div>
+      <h2>EduCourses</h2>
 
       <div className="nav-links">
         {links.map(link => (
-          <a key={link} href={`#${link}`}>
-            {link.charAt(0).toUpperCase() + link.slice(1)}
+          <a
+            key={link.id}
+            href={`#${link.id}`}
+            className={active === link.id ? 'active' : ''}
+            onClick={() => setActive(link.id)}
+          >
+            {link.label}
           </a>
         ))}
       </div>
@@ -26,72 +37,93 @@ const Navbar = () => {
   );
 };
 
-/* HERO */
+/* ================= HERO ================= */
 const Hero = () => (
   <section id="home" className="hero">
     <div>
-      <h1>Learn Skills Fast 🚀</h1>
-      <p>Modern platform for coding & design</p>
+      <h1>Learn, Code & Grow 🚀</h1>
+      <p>Modern learning platform for developers</p>
+
+      <button onClick={() => document.getElementById('courses').scrollIntoView({ behavior: 'smooth' })}>
+        Start Learning
+      </button>
     </div>
-    <img src={heroImg} alt="hero" />
+
+    <div>
+      <img src={heroImg} width="250" alt="hero" />
+    </div>
   </section>
 );
 
-/* COURSES (GRID) */
+/* ================= COURSES ================= */
 const Courses = () => (
   <section id="courses">
     <h2>Courses</h2>
 
     <div className="grid">
       <div className="card">React Basics</div>
-      <div className="card">JavaScript</div>
+      <div className="card">JavaScript Advanced</div>
       <div className="card">HTML & CSS</div>
       <div className="card">Node.js</div>
-      <div className="card">UI/UX</div>
+      <div className="card">UI/UX Design</div>
       <div className="card">Git & GitHub</div>
     </div>
   </section>
 );
 
-/* FEATURES (GRID) */
+/* ================= FEATURES ================= */
 const Features = () => (
   <section id="features">
     <h2>Features</h2>
 
     <div className="grid">
-      <div className="card">✔ Fast Learning</div>
-      <div className="card">✔ Certificates</div>
-      <div className="card">✔ Real Projects</div>
+      <div className="card">⚡ Fast Learning</div>
+      <div className="card">📜 Certificates</div>
+      <div className="card">💡 Real Projects</div>
     </div>
   </section>
 );
 
-/* PRICING (GRID) */
+/* ================= LOGIN ================= */
+const Login = () => (
+  <section id="login">
+    <h2>Login</h2>
+
+    <div className="grid login-box">
+      <input type="text" placeholder="Username" />
+      <input type="password" placeholder="Password" />
+      <button>Login</button>
+    </div>
+  </section>
+);
+
+/* ================= PRICING ================= */
 const Pricing = () => (
   <section id="pricing">
     <h2>Pricing</h2>
 
     <div className="grid">
-      <div className="card">Free Plan</div>
-      <div className="card">Pro Plan</div>
-      <div className="card">Premium Plan</div>
+      <div className="card">Free</div>
+      <div className="card">Pro</div>
+      <div className="card">Premium</div>
     </div>
   </section>
 );
 
-/* CONTACT */
+/* ================= CONTACT ================= */
 const Contact = () => (
   <section id="contact">
     <h2>Contact</h2>
 
     <div className="grid">
-      <div className="card">📞 Call us</div>
+      <div className="card">📞 Phone</div>
       <div className="card">📧 Email</div>
       <div className="card">💬 Support</div>
     </div>
   </section>
 );
 
+/* ================= APP ================= */
 export default function App() {
   return (
     <>
@@ -99,6 +131,7 @@ export default function App() {
       <Hero />
       <Courses />
       <Features />
+      <Login />
       <Pricing />
       <Contact />
     </>
