@@ -4,179 +4,121 @@ import heroImg from './assets/hero.png';
 import reactLogo from './assets/react.svg';
 import viteLogo from './assets/vite.svg';
 
-// Navbar (UPDATED)
+/* ================= NAVBAR ================= */
 const Navbar = () => {
   const [active, setActive] = useState('home');
 
+  const links = [
+    { id: 'home', label: 'Home', icon: 'icon-home' },
+    { id: 'courses', label: 'Courses', icon: 'icon-courses' },
+    { id: 'login', label: 'Login', icon: 'icon-dashboard' },
+    { id: 'contact', label: 'Contact', icon: 'icon-quiz' },
+  ];
+
   return (
     <nav className="navbar">
-      <h2>EduCourses</h2>
+      <div className="logo">EduCourses</div>
 
       <div className="nav-links">
-
-        <a
-          href="#home"
-          className={active === 'home' ? 'active nav-item' : 'nav-item'}
-          onClick={() => setActive('home')}
-        >
-          <svg className="icon">
-            <use href="/icons.svg#icon-home"></use>
-          </svg>
-          Home
-        </a>
-
-        <a
-          href="#courses"
-          className={active === 'courses' ? 'active nav-item' : 'nav-item'}
-          onClick={() => setActive('courses')}
-        >
-          <svg className="icon">
-            <use href="/icons.svg#icon-courses"></use>
-          </svg>
-          Courses
-        </a>
-
-        <a
-          href="#login"
-          className={active === 'login' ? 'active nav-item' : 'nav-item'}
-          onClick={() => setActive('login')}
-        >
-          <svg className="icon">
-            <use href="/icons.svg#icon-dashboard"></use>
-          </svg>
-          Login
-        </a>
-
-        <a
-          href="#contact"
-          className={active === 'contact' ? 'active nav-item' : 'nav-item'}
-          onClick={() => setActive('contact')}
-        >
-          <svg className="icon">
-            <use href="/icons.svg#icon-quiz"></use>
-          </svg>
-          Contact
-        </a>
-
+        {links.map(link => (
+          <a
+            key={link.id}
+            href={`#${link.id}`}
+            onClick={() => setActive(link.id)}
+            className={`nav-item ${active === link.id ? 'active' : ''}`}
+          >
+            <svg className="icon">
+              <use href={`/icons.svg#${link.icon}`}></use>
+            </svg>
+            {link.label}
+          </a>
+        ))}
       </div>
     </nav>
   );
 };
 
-// Footer
-const Footer = () => (
-  <footer>
-    <p>© 2026 EduCourses. All rights reserved.</p>
-    <div>
-      <a href="#">GitHub</a>
-      <a href="#">Discord</a>
-      <a href="#">Twitter</a>
+/* ================= HERO ================= */
+const Hero = () => (
+  <section id="home" className="hero">
+    <div className="hero-content">
+      <h1>Learn Skills That Matter 🚀</h1>
+      <p>Build your future with modern courses in programming & design</p>
+
+      <div className="hero-buttons">
+        <button onClick={() => document.getElementById('courses').scrollIntoView({ behavior: 'smooth' })}>
+          Start Learning
+        </button>
+      </div>
     </div>
-  </footer>
+
+    <div className="hero-images">
+      <img src={heroImg} alt="hero" />
+      <img src={reactLogo} alt="react" />
+      <img src={viteLogo} alt="vite" />
+    </div>
+  </section>
 );
 
-// CourseCard
-const CourseCard = ({ course, onViewDetails }) => (
-  <div className={`course-card ${course.color}`} onClick={() => onViewDetails(course)}>
-    <img src={heroImg} alt={course.title} />
-    <h3>{course.title}</h3>
-    <p>{course.description}</p>
-    <button>View Details</button>
-  </div>
-);
-
+/* ================= COURSES ================= */
 const courses = [
-  { id: 1, title: "React Basics", description: "Learn React step by step", details: "React fundamentals, components, props, state, hooks.", color: 'color1' },
-  { id: 2, title: "JavaScript Advanced", description: "Deep dive into JS", details: "Closures, promises, async/await, ES6 features.", color: 'color2' },
-  { id: 3, title: "HTML & CSS", description: "Design beautiful websites", details: "HTML, CSS, Flexbox, Grid, Responsive Design.", color: 'color3' }
+  { id: 1, title: "React Basics", desc: "Learn React step by step" },
+  { id: 2, title: "JavaScript Advanced", desc: "Deep dive into JS" },
+  { id: 3, title: "HTML & CSS", desc: "Design beautiful websites" }
 ];
 
-// Hero + Login
-const HeroAndLogin = () => {
-  const [fadeIn, setFadeIn] = useState(false);
-  useEffect(() => { setFadeIn(true); }, []);
+const Courses = () => (
+  <section id="courses" className="courses">
+    <h2>Popular Courses</h2>
 
-  return (
-    <section id="home" style={{ opacity: fadeIn ? 1 : 0, transition: 'opacity 1s' }}>
-      <div className="hero">
-        <img src={heroImg} width="180" alt="Hero" />
-        <img src={reactLogo} width="60" alt="React" />
-        <img src={viteLogo} width="60" alt="Vite" />
-      </div>
-
-      <h1>Learn, Code, and Grow with EduCourses</h1>
-
-      <button onClick={() => document.getElementById('courses').scrollIntoView({ behavior: 'smooth' })}>
-        Start Learning
-      </button>
-
-      <div id="login">
-        <h2>Login</h2>
-        <input type="text" placeholder="Username" /><br />
-        <input type="password" placeholder="Password" /><br />
-        <button>Login</button>
-      </div>
-    </section>
-  );
-};
-
-// Courses Section
-const CoursesSection = ({ onViewDetails }) => (
-  <section id="courses">
-    <h1>Our Courses</h1>
-    <div className="courses-container">
-      {courses.map(course => (
-        <CourseCard key={course.id} course={course} onViewDetails={onViewDetails} />
+    <div className="course-grid">
+      {courses.map(c => (
+        <div key={c.id} className="course-card">
+          <h3>{c.title}</h3>
+          <p>{c.desc}</p>
+          <button>View</button>
+        </div>
       ))}
     </div>
   </section>
 );
 
-// Course Detail
-const CourseDetail = ({ course, onBack }) => (
-  <section style={{ padding: "40px", textAlign: "center" }}>
-    <h1>{course.title}</h1>
-    <p style={{ maxWidth: "600px", margin: "15px auto" }}>{course.details}</p>
-    <button onClick={onBack}>Back to Courses</button>
+/* ================= LOGIN ================= */
+const Login = () => (
+  <section id="login" className="login">
+    <h2>Login</h2>
+
+    <input placeholder="Username" />
+    <input type="password" placeholder="Password" />
+    <button>Login</button>
   </section>
 );
 
-// Contact / Ads Section
-const ContactSection = () => (
+/* ================= CONTACT ================= */
+const Contact = () => (
   <section id="contact" className="contact">
-    <h2>Contact & Advertisements</h2>
-
-    <div className="ads">
-      <img src="https://via.placeholder.com/200x100?text=Ad+1" alt="Ad 1" />
-      <img src="https://via.placeholder.com/200x100?text=Ad+2" alt="Ad 2" />
-      <img src="https://via.placeholder.com/200x100?text=Ad+3" alt="Ad 3" />
-    </div>
-
-    <div className="contact-info">
-      📞 Call us: <a href="tel:+1234567890">+1 234 567 890</a>
-    </div>
+    <h2>Contact</h2>
+    <p>📞 +1 234 567 890</p>
   </section>
 );
 
-// MAIN APP
+/* ================= FOOTER ================= */
+const Footer = () => (
+  <footer className="footer">
+    <p>© 2026 EduCourses</p>
+  </footer>
+);
+
+/* ================= APP ================= */
 export default function App() {
-  const [selectedCourse, setSelectedCourse] = useState(null);
-
   return (
-    <div>
+    <>
       <Navbar />
-
-      {selectedCourse ? (
-        <CourseDetail course={selectedCourse} onBack={() => setSelectedCourse(null)} />
-      ) : (
-        <>
-          <HeroAndLogin />
-          <CoursesSection onViewDetails={setSelectedCourse} />
-          <ContactSection />
-        </>
-      )}
-
+      <Hero />
+      <Courses />
+      <Login />
+      <Contact />
       <Footer />
-    </div>
+    </>
   );
 }
