@@ -1,0 +1,234 @@
+/* ===========================
+   Global Styles
+=========================== */
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;
+  background: #f9fafb;
+  color: #1f2937;
+}
+
+/* ===========================
+   Navbar
+=========================== */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;
+  background: linear-gradient(90deg,#4f46e5,#3b82f6);
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+nav h2 { margin: 0; }
+nav div a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  margin-left: 20px;
+  transition: all 0.3s;
+}
+nav div a:hover,
+nav div a.active { color: #10b981; transform: scale(1.1); }
+
+/* ===========================
+   Hero Section
+=========================== */
+section#home {
+  background: linear-gradient(135deg,#4f46e5,#3b82f6);
+  text-align: center;
+  padding: 100px 20px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+section#home h1 {
+  font-size: 2.7rem;
+  margin: 20px 0;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+  animation: slideUp 1s ease forwards;
+}
+section#home button {
+  padding: 16px 40px;
+  font-size: 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(90deg,#10b981,#06b6d4);
+  color: white;
+  font-weight: 600;
+  transition: all 0.4s;
+}
+section#home button:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+/* ===========================
+   Login Box
+=========================== */
+#login {
+  margin: 60px auto;
+  max-width: 420px;
+  background: white;
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+#login:hover { transform: translateY(-5px); box-shadow: 0 12px 35px rgba(0,0,0,0.2); }
+#login input {
+  padding: 14px;
+  width: 90%;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  transition: all 0.3s;
+}
+#login input:focus { border-color: #4f46e5; outline: none; box-shadow: 0 0 8px rgba(79,70,229,0.4); }
+#login button {
+  padding: 14px 30px;
+  border-radius: 8px;
+  background: linear-gradient(90deg,#4f46e5,#3b82f6);
+  color: white;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+#login button:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 6px 15px rgba(0,0,0,0.2); }
+
+/* ===========================
+   Courses Section
+=========================== */
+section#courses {
+  padding: 60px 20px;
+  background: #f3f4f6;
+}
+section#courses h1 {
+  text-align: center;
+  margin-bottom: 50px;
+  font-size: 2.2rem;
+}
+
+/* Courses Container */
+.courses-container {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Course Cards */
+.course-card {
+  padding: 25px;
+  width: 240px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  cursor: pointer;
+  background: white;
+  transition: transform 0.4s, box-shadow 0.4s;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideUp 0.8s ease forwards;
+}
+.course-card:nth-child(1){ animation-delay:0.2s; }
+.course-card:nth-child(2){ animation-delay:0.4s; }
+.course-card:nth-child(3){ animation-delay:0.6s; }
+.course-card:hover {
+  transform: scale(1.1);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+}
+.course-card img {
+  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  transition: transform 0.3s;
+}
+.course-card img:hover { transform: scale(1.05); }
+.course-card button {
+  margin-top: 12px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg,#f97316,#f43f5e);
+  transition: all 0.3s;
+}
+.course-card button:hover { transform: translateY(-3px) scale(1.05); box-shadow:0 6px 20px rgba(0,0,0,0.2); }
+
+/* ===========================
+   Contact Section
+=========================== */
+section.contact {
+  padding: 70px 20px;
+  background: linear-gradient(135deg,#06b6d4,#3b82f6);
+  color: white;
+  text-align: center;
+}
+section.contact img {
+  border-radius: 15px;
+  margin: 15px;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+section.contact img:hover { transform: scale(1.08); box-shadow:0 8px 25px rgba(0,0,0,0.25); }
+.contact-info { font-size: 18px; margin-bottom: 20px; }
+
+/* ===========================
+   Social Icons
+=========================== */
+.social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  font-size: 28px;
+  margin-top: 20px;
+}
+.social-icons a {
+  width: 55px;
+  height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s;
+}
+.social-icons a.facebook { background-color: #1877F2; }
+.social-icons a.instagram { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%); }
+.social-icons a.twitter { background-color: #1DA1F2; }
+.social-icons a.linkedin { background-color: #0077b5; }
+.social-icons a:hover { transform: scale(1.2) rotate(10deg); filter: brightness(1.2); }
+
+/* ===========================
+   Footer
+=========================== */
+footer {
+  background: linear-gradient(90deg,#1f2937,#111827);
+  color: white;
+  text-align: center;
+  padding: 40px 20px;
+}
+footer a { color:white; margin:0 12px; text-decoration:none; font-size:18px; transition:all 0.3s; }
+footer a:hover { color:#10b981; transform: scale(1.1); }
+
+/* ===========================
+   Animations
+=========================== */
+@keyframes fadeInZoom { 0%{opacity:0; transform:scale(0.9);} 100%{opacity:1; transform:scale(1);} }
+@keyframes slideUp { 0%{opacity:0; transform:translateY(30px);} 100%{opacity:1; transform:translateY(0);} }
+
+/* ===========================
+   Responsive
+=========================== */
+@media (max-width:768px){ .course-card{width:48%;} }
+@media (max-width:480px){ .course-card{width:100%;} nav{flex-direction:column;gap:15px;} }
