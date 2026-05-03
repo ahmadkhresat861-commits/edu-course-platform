@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import './App.css';
 import heroImg from './assets/hero.png';
-import reactLogo from './assets/react.svg';
-import viteLogo from './assets/vite.svg';
 
-/* ================= NAVBAR ================= */
 const Navbar = () => {
-  const [active, setActive] = useState('home');
-
   const links = [
-    { id: 'home', label: 'Home', icon: 'icon-home' },
-    { id: 'courses', label: 'Courses', icon: 'icon-courses' },
-    { id: 'login', label: 'Login', icon: 'icon-dashboard' },
-    { id: 'contact', label: 'Contact', icon: 'icon-quiz' },
+    'home',
+    'courses',
+    'features',
+    'pricing',
+    'contact'
   ];
 
   return (
@@ -21,16 +17,8 @@ const Navbar = () => {
 
       <div className="nav-links">
         {links.map(link => (
-          <a
-            key={link.id}
-            href={`#${link.id}`}
-            onClick={() => setActive(link.id)}
-            className={`nav-item ${active === link.id ? 'active' : ''}`}
-          >
-            <svg className="icon">
-              <use href={`/icons.svg#${link.icon}`}></use>
-            </svg>
-            {link.label}
+          <a key={link} href={`#${link}`}>
+            {link.charAt(0).toUpperCase() + link.slice(1)}
           </a>
         ))}
       </div>
@@ -38,87 +26,81 @@ const Navbar = () => {
   );
 };
 
-/* ================= HERO ================= */
+/* HERO */
 const Hero = () => (
   <section id="home" className="hero">
-    <div className="hero-content">
-      <h1>Learn Skills That Matter 🚀</h1>
-      <p>Build your future with modern courses in programming & design</p>
-
-      <div className="hero-buttons">
-        <button onClick={() => document.getElementById('courses').scrollIntoView({ behavior: 'smooth' })}>
-          Start Learning
-        </button>
-      </div>
+    <div>
+      <h1>Learn Skills Fast 🚀</h1>
+      <p>Modern platform for coding & design</p>
     </div>
-
-    <div className="hero-images">
-      <img src={heroImg} alt="hero" />
-      <img src={reactLogo} alt="react" />
-      <img src={viteLogo} alt="vite" />
-    </div>
+    <img src={heroImg} alt="hero" />
   </section>
 );
 
-/* ================= COURSES ================= */
-const courses = [
-  { id: 1, title: "React Basics", desc: "Learn React step by step" },
-  { id: 2, title: "JavaScript Advanced", desc: "Deep dive into JS" },
-  { id: 3, title: "HTML & CSS", desc: "Design beautiful websites" }
-];
-
+/* COURSES (GRID) */
 const Courses = () => (
-  <section id="courses" className="courses">
-    <h2>Popular Courses</h2>
+  <section id="courses">
+    <h2>Courses</h2>
 
-    <div className="course-grid">
-      {courses.map(c => (
-        <div key={c.id} className="course-card">
-          <h3>{c.title}</h3>
-          <p>{c.desc}</p>
-          <button>View</button>
-        </div>
-      ))}
+    <div className="grid">
+      <div className="card">React Basics</div>
+      <div className="card">JavaScript</div>
+      <div className="card">HTML & CSS</div>
+      <div className="card">Node.js</div>
+      <div className="card">UI/UX</div>
+      <div className="card">Git & GitHub</div>
     </div>
   </section>
 );
 
-/* ================= LOGIN ================= */
-const Login = () => (
-  <section id="login" className="login">
-    <h2>Login</h2>
+/* FEATURES (GRID) */
+const Features = () => (
+  <section id="features">
+    <h2>Features</h2>
 
-    <input placeholder="Username" />
-    <input type="password" placeholder="Password" />
-    <button>Login</button>
+    <div className="grid">
+      <div className="card">✔ Fast Learning</div>
+      <div className="card">✔ Certificates</div>
+      <div className="card">✔ Real Projects</div>
+    </div>
   </section>
 );
 
-/* ================= CONTACT ================= */
+/* PRICING (GRID) */
+const Pricing = () => (
+  <section id="pricing">
+    <h2>Pricing</h2>
+
+    <div className="grid">
+      <div className="card">Free Plan</div>
+      <div className="card">Pro Plan</div>
+      <div className="card">Premium Plan</div>
+    </div>
+  </section>
+);
+
+/* CONTACT */
 const Contact = () => (
-  <section id="contact" className="contact">
+  <section id="contact">
     <h2>Contact</h2>
-    <p>📞 +1 234 567 890</p>
+
+    <div className="grid">
+      <div className="card">📞 Call us</div>
+      <div className="card">📧 Email</div>
+      <div className="card">💬 Support</div>
+    </div>
   </section>
 );
 
-/* ================= FOOTER ================= */
-const Footer = () => (
-  <footer className="footer">
-    <p>© 2026 EduCourses</p>
-  </footer>
-);
-
-/* ================= APP ================= */
 export default function App() {
   return (
     <>
       <Navbar />
       <Hero />
       <Courses />
-      <Login />
+      <Features />
+      <Pricing />
       <Contact />
-      <Footer />
     </>
   );
 }
