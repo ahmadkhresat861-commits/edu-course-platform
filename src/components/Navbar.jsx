@@ -14,6 +14,7 @@ const Navbar = () => {
         <a onClick={() => navigate('/home')}><i className="fas fa-home"></i> Home</a>
         <a onClick={() => navigate('/courses')}><i className="fas fa-book"></i> Courses</a>
         <a onClick={() => navigate('/dashboard')}><i className="fas fa-chart-bar"></i> Dashboard</a>
+        <a onClick={() => navigate('/profile')}><i className="fas fa-user"></i> Profile</a>
       </div>
     </nav>
   );
