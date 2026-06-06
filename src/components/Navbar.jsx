@@ -1,18 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabase';
 import '../App.css';
-
-const notifications = [
-  { icon: 'fas fa-book', text: 'New course available: Node.js Basics', time: '2 min ago', color: '#003366' },
-  { icon: 'fas fa-star', text: 'Your profile was viewed', time: '15 min ago', color: '#f0a500' },
-  { icon: 'fas fa-check-circle', text: 'You completed HTML & CSS!', time: '1 hour ago', color: '#10b981' },
-  { icon: 'fas fa-bell', text: 'Welcome to Zephyr Academy!', time: '1 day ago', color: '#6366f1' },
-];
 
 const Navbar = () => {
   const navigate = useNavigate();
   const [showNotif, setShowNotif] = useState(false);
-  const [unread, setUnread] = useState(3);
+  const [notifications, setNotifications] = useState([]);
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) {
+        setNotifications(data);
+        setUnread(data.length);
+      }
+    };
+    fetchNotifications();
+  }, []);
 
   const handleNotif = () => {
     setShowNotif(!showNotif);
@@ -49,24 +58,33 @@ const Navbar = () => {
             <div style={{ position: 'absolute', top: '50px', right: '0', background: 'white', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', width: '320px', zIndex: 1000, overflow: 'hidden' }}>
               <div style={{ padding: '15px 20px', background: '#003366', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ margin: 0, fontSize: '1rem' }}><i className="fas fa-bell"></i> Notifications</h3>
-                <span style={{ fontSize: '0.8rem', color: '#a8c8f0' }}>Mark all read</span>
+                <span style={{ fontSize: '0.8rem', color: '#a8c8f0' }}>{notifications.length} messages</span>
               </div>
-              {notifications.map((notif, i) => (
-                <div key={i} style={{ padding: '15px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '12px', alignItems: 'flex-start', cursor: 'pointer', transition: 'background 0.2s' }}
-                  onMouseOver={e => e.currentTarget.style.background = '#f9f9f9'}
-                  onMouseOut={e => e.currentTarget.style.background = 'white'}>
-                  <div style={{ width: '35px', height: '35px', borderRadius: '50%', background: `${notif.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <i className={notif.icon} style={{ color: notif.color, fontSize: '0.9rem' }}></i>
-                  </div>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#333', fontWeight: '500' }}>{notif.text}</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#888' }}>{notif.time}</p>
-                  </div>
+              {notifications.length === 0 ? (
+                <div style={{ padding: '30px', textAlign: 'center', color: '#888' }}>
+                  <i className="fas fa-bell-slash" style={{ fontSize: '2rem', marginBottom: '10px', display: 'block' }}></i>
+                  No notifications yet
                 </div>
-              ))}
-              <div style={{ padding: '12px', textAlign: 'center', cursor: 'pointer', color: '#003366', fontWeight: '600', fontSize: '0.9rem' }}>
-                View All Notifications
-              </div>
+              ) : (
+                notifications.map((notif, i) => (
+                  <div key={i} style={{ padding: '15px 20px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}
+                    onMouseOver={e => e.currentTarget.style.background = '#f9f9f9'}
+                    onMouseOut={e => e.currentTarget.style.background = 'white'}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                      <div style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#003366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <i className="fas fa-bell" style={{ color: '#f0a500', fontSize: '0.9rem' }}></i>
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#333', fontWeight: '600' }}>{notif.title}</p>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#555' }}>{notif.message}</p>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#888' }}>
+                          {new Date(notif.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
