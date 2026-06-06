@@ -7,6 +7,7 @@ import Dashboard from './PAGES/Dashboard'
 import Profile from './PAGES/Profile'
 import Contact from './PAGES/Contact'
 import Admin from './PAGES/Admin'
+import Sessions from './PAGES/Sessions'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -22,6 +23,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><><Navbar /><Dashboard /><Footer /></></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><><Navbar /><Profile /><Footer /></></ProtectedRoute>} />
         <Route path="/contact" element={<ProtectedRoute><><Navbar /><Contact /><Footer /></></ProtectedRoute>} />
+        <Route path="/sessions" element={<ProtectedRoute><><Navbar /><Sessions /><Footer /></></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>

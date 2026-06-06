@@ -29,6 +29,7 @@ const Navbar = () => {
         <a onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}><i className="fas fa-home"></i> Home</a>
         <a onClick={() => navigate('/courses')} style={{ cursor: 'pointer' }}><i className="fas fa-book"></i> Courses</a>
         <a onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}><i className="fas fa-chart-bar"></i> Dashboard</a>
+        <a onClick={() => navigate('/sessions')} style={{ cursor: 'pointer' }}><i className="fas fa-video"></i> Sessions</a>
         <a onClick={() => navigate('/contact')} style={{ cursor: 'pointer' }}><i className="fas fa-headset"></i> Contact</a>
         <a onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}><i className="fas fa-user"></i> Profile</a>
 
