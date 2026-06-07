@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import '../App.css';
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_TIME = 15 * 60 * 1000;
+
 const Login = () => {
   const [fadeIn, setFadeIn] = useState(false);
   const [email, setEmail] = useState('');
@@ -14,11 +17,30 @@ const Login = () => {
   useEffect(() => { setFadeIn(true); }, []);
 
   const handleLogin = async () => {
+    const lockout = localStorage.getItem('lockout_until');
+    if (lockout && Date.now() < parseInt(lockout)) {
+      const mins = Math.ceil((parseInt(lockout) - Date.now()) / 60000);
+      setError(`Too many attempts. Try again in ${mins} minutes.`);
+      return;
+    }
     setLoading(true);
     setError('');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setError(error.message); } 
-    else { navigate('/home'); }
+    if (error) {
+      const attempts = parseInt(localStorage.getItem('login_attempts') || '0') + 1;
+      localStorage.setItem('login_attempts', attempts);
+      if (attempts >= MAX_ATTEMPTS) {
+        localStorage.setItem('lockout_until', Date.now() + LOCKOUT_TIME);
+        localStorage.removeItem('login_attempts');
+        setError('Too many failed attempts. Account locked for 15 minutes. 🔒');
+      } else {
+        setError(`Invalid credentials. ${MAX_ATTEMPTS - attempts} attempts remaining.`);
+      }
+    } else {
+      localStorage.removeItem('login_attempts');
+      localStorage.removeItem('lockout_until');
+      navigate('/home');
+    }
     setLoading(false);
   };
 
@@ -34,8 +56,6 @@ const Login = () => {
       position: 'relative',
       overflow: 'hidden'
     }}>
-
-      {/* Background circles */}
       {[
         { size: 300, top: '-100px', left: '-100px', color: 'rgba(240,165,0,0.15)' },
         { size: 400, bottom: '-150px', right: '-150px', color: 'rgba(0,119,182,0.2)' },
@@ -49,7 +69,6 @@ const Login = () => {
         }} />
       ))}
 
-      {/* Glass Card */}
       <div style={{
         background: 'rgba(255,255,255,0.08)',
         backdropFilter: 'blur(20px)',
@@ -63,7 +82,6 @@ const Login = () => {
         zIndex: 1,
         textAlign: 'center'
       }}>
-        {/* Logo */}
         <div style={{ marginBottom: '25px' }}>
           <i className="fas fa-graduation-cap" style={{ fontSize: '3.5rem', color: '#f0a500' }}></i>
         </div>
@@ -74,13 +92,12 @@ const Login = () => {
 
         {error && <p style={{ color: '#ff6b6b', marginBottom: '15px', fontSize: '0.9rem', background: 'rgba(255,107,107,0.1)', padding: '10px', borderRadius: '8px' }}>{error}</p>}
 
-        {/* Inputs */}
         <div style={{ marginBottom: '15px', textAlign: 'left' }}>
           <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', marginBottom: '6px', display: 'block' }}>
             <i className="fas fa-envelope" style={{ marginRight: '6px', color: '#f0a500' }}></i> Email
           </label>
           <input type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem', outline: 'none', backdropFilter: 'blur(10px)' }} />
+            style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem', outline: 'none' }} />
         </div>
 
         <div style={{ marginBottom: '25px', textAlign: 'left' }}>
@@ -88,7 +105,7 @@ const Login = () => {
             <i className="fas fa-lock" style={{ marginRight: '6px', color: '#f0a500' }}></i> Password
           </label>
           <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem', outline: 'none', backdropFilter: 'blur(10px)' }} />
+            style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem', outline: 'none' }} />
         </div>
 
         <button onClick={handleLogin} disabled={loading}
