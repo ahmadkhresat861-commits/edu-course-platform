@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { useLang } from '../LanguageContext';
 import '../App.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const { t, toggleLang, lang } = useLang();
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread] = useState(0);
@@ -17,7 +19,8 @@ const Navbar = () => {
         .order('created_at', { ascending: false });
       if (data) {
         setNotifications(data);
-        setUnread(data.length);
+        const read = parseInt(localStorage.getItem('notif_read') || '0');
+        setUnread(Math.max(0, data.length - read));
       }
     };
     fetchNotifications();
@@ -25,7 +28,15 @@ const Navbar = () => {
 
   const handleNotif = () => {
     setShowNotif(!showNotif);
-    if (!showNotif) setUnread(0);
+    if (!showNotif) {
+      setUnread(0);
+      localStorage.setItem('notif_read', notifications.length);
+    }
+  };
+
+  const markAllRead = () => {
+    setUnread(0);
+    localStorage.setItem('notif_read', notifications.length);
   };
 
   return (
@@ -34,16 +45,21 @@ const Navbar = () => {
         <i className="fas fa-graduation-cap" style={{ color: '#f0a500', marginRight: '8px' }}></i>
         Zephyr Academy
       </h2>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-        <a onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}><i className="fas fa-home"></i> Home</a>
-        <a onClick={() => navigate('/courses')} style={{ cursor: 'pointer' }}><i className="fas fa-book"></i> Courses</a>
-        <a onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}><i className="fas fa-chart-bar"></i> Dashboard</a>
-        <a onClick={() => navigate('/sessions')} style={{ cursor: 'pointer' }}><i className="fas fa-video"></i> Sessions</a>
-        <a onClick={() => navigate('/contact')} style={{ cursor: 'pointer' }}><i className="fas fa-headset"></i> Contact</a>
-        <a onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}><i className="fas fa-user"></i> Profile</a>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+        <a onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}><i className="fas fa-home"></i> {t.home}</a>
+        <a onClick={() => navigate('/courses')} style={{ cursor: 'pointer' }}><i className="fas fa-book"></i> {t.courses}</a>
+        <a onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}><i className="fas fa-chart-bar"></i> {t.dashboard}</a>
+        <a onClick={() => navigate('/sessions')} style={{ cursor: 'pointer' }}><i className="fas fa-video"></i> {t.sessions}</a>
+        <a onClick={() => navigate('/contact')} style={{ cursor: 'pointer' }}><i className="fas fa-headset"></i> {t.contact}</a>
+        <a onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}><i className="fas fa-user"></i> {t.profile}</a>
+
+        {/* Language Toggle */}
+        <button onClick={toggleLang} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', marginLeft: '5px' }}>
+          {lang === 'en' ? '🌐 العربية' : '🌐 English'}
+        </button>
 
         {/* Notification Bell */}
-        <div style={{ position: 'relative', marginLeft: '10px' }}>
+        <div style={{ position: 'relative', marginLeft: '5px' }}>
           <div onClick={handleNotif} style={{ cursor: 'pointer', width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
             <i className="fas fa-bell" style={{ fontSize: '1.1rem', color: 'white' }}></i>
             {unread > 0 && (
@@ -52,13 +68,13 @@ const Navbar = () => {
               </span>
             )}
           </div>
-
-          {/* Dropdown */}
           {showNotif && (
             <div style={{ position: 'absolute', top: '50px', right: '0', background: 'white', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', width: '320px', zIndex: 1000, overflow: 'hidden' }}>
               <div style={{ padding: '15px 20px', background: '#003366', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ margin: 0, fontSize: '1rem' }}><i className="fas fa-bell"></i> Notifications</h3>
-                <span style={{ fontSize: '0.8rem', color: '#a8c8f0' }}>{notifications.length} messages</span>
+                <span onClick={markAllRead} style={{ fontSize: '0.8rem', color: '#f0a500', cursor: 'pointer', fontWeight: '600' }}>
+                  Mark all read ✓
+                </span>
               </div>
               {notifications.length === 0 ? (
                 <div style={{ padding: '30px', textAlign: 'center', color: '#888' }}>
