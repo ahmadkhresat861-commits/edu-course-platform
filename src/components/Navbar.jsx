@@ -269,7 +269,7 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* لا توجد إشعارات */}
+              {/*  حاليالا توجد إشعارات */}
               {!loading && !error && notifications.length === 0 && (
                 <div style={{ padding: '30px', textAlign: 'center', color: '#888' }}>
                   <i

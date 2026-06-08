@@ -12,22 +12,27 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
+import AIAssistant from './components/AIAssistant'
+import { LanguageProvider } from './LanguageContext'
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/home" element={<ProtectedRoute><><Navbar /><Home /><Footer /></></ProtectedRoute>} />
-        <Route path="/courses" element={<ProtectedRoute><><Navbar /><Courses /><Footer /></></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><><Navbar /><Dashboard /><Footer /></></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><><Navbar /><Profile /><Footer /></></ProtectedRoute>} />
-        <Route path="/contact" element={<ProtectedRoute><><Navbar /><Contact /><Footer /></></ProtectedRoute>} />
-        <Route path="/sessions" element={<ProtectedRoute><><Navbar /><Sessions /><Footer /></></ProtectedRoute>} />
-        <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-      </Routes>
-    </BrowserRouter>
+    <LanguageProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/home" element={<ProtectedRoute><><Navbar /><Home /><Footer /></></ProtectedRoute>} />
+          <Route path="/courses" element={<ProtectedRoute><><Navbar /><Courses /><Footer /></></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><><Navbar /><Dashboard /><Footer /></></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><><Navbar /><Profile /><Footer /></></ProtectedRoute>} />
+          <Route path="/contact" element={<ProtectedRoute><><Navbar /><Contact /><Footer /></></ProtectedRoute>} />
+          <Route path="/sessions" element={<ProtectedRoute><><Navbar /><Sessions /><Footer /></></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+        </Routes>
+        <AIAssistant />
+      </BrowserRouter>
+    </LanguageProvider>
   )
 }
 
