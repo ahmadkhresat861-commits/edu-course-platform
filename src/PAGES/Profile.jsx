@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { useLang } from '../LanguageContext';
 import '../App.css';
 
 const Profile = () => {
@@ -9,6 +10,15 @@ const Profile = () => {
   const [profile, setProfile] = useState({ username: '', full_name: '', bio: '', phone: '', country: '' });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const { darkMode } = useLang();
+
+  const bg = darkMode ? '#0f0f0f' : '#f5f5f5';
+  const card = darkMode ? '#1a1a2e' : 'white';
+  const text = darkMode ? 'white' : '#003366';
+  const text2 = darkMode ? '#a8c8f0' : '#888';
+  const border = darkMode ? '#2e2e4e' : '#ddd';
+  const inputBg = darkMode ? '#0f0f0f' : 'white';
+  const inputText = darkMode ? 'white' : '#1a1a1a';
 
   useEffect(() => {
     const getUser = async () => {
@@ -23,11 +33,7 @@ const Profile = () => {
 
   const handleSave = async () => {
     setLoading(true);
-    const { error } = await supabase.from('profiles').upsert({ 
-      id: user.id,
-      user_id: user.id,
-      ...profile 
-    });
+    const { error } = await supabase.from('profiles').upsert({ id: user.id, user_id: user.id, ...profile });
     if (error) setMessage('Error: ' + error.message);
     else setMessage('Profile saved successfully! ✅');
     setLoading(false);
@@ -39,12 +45,12 @@ const Profile = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f5', padding: '40px 20px' }}>
-      <div style={{ maxWidth: '600px', margin: '0 auto', background: 'white', borderRadius: '12px', padding: '40px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)' }}>
+    <div style={{ minHeight: '100vh', background: bg, padding: '40px 20px', transition: 'all 0.3s' }}>
+      <div style={{ maxWidth: '600px', margin: '0 auto', background: card, borderRadius: '12px', padding: '40px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', transition: 'all 0.3s' }}>
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <i className="fas fa-user-circle" style={{ fontSize: '5rem', color: '#003366' }}></i>
-          <h2 style={{ color: '#003366', marginTop: '10px' }}>My Profile</h2>
-          <p style={{ color: '#888' }}>{user?.email}</p>
+          <i className="fas fa-user-circle" style={{ fontSize: '5rem', color: '#f0a500' }}></i>
+          <h2 style={{ color: text, marginTop: '10px' }}>My Profile</h2>
+          <p style={{ color: text2 }}>{user?.email}</p>
         </div>
 
         {message && <p style={{ color: message.includes('Error') ? 'red' : 'green', textAlign: 'center', marginBottom: '20px' }}>{message}</p>}
@@ -57,14 +63,14 @@ const Profile = () => {
           { label: 'Country', key: 'country', icon: 'fas fa-globe' },
         ].map(field => (
           <div key={field.key} style={{ marginBottom: '20px' }}>
-            <label style={{ color: '#003366', fontWeight: '600', display: 'block', marginBottom: '8px' }}>
+            <label style={{ color: text, fontWeight: '600', display: 'block', marginBottom: '8px' }}>
               <i className={field.icon}></i> {field.label}
             </label>
             <input
               type="text"
               value={profile[field.key] || ''}
               onChange={e => setProfile({ ...profile, [field.key]: e.target.value })}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem' }}
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, fontSize: '1rem', background: inputBg, color: inputText }}
             />
           </div>
         ))}
