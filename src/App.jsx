@@ -11,6 +11,7 @@ import Sessions from './PAGES/Sessions'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminRoute from './components/AdminRoute'
 
 function App() {
   return (
@@ -24,7 +25,7 @@ function App() {
         <Route path="/profile" element={<ProtectedRoute><><Navbar /><Profile /><Footer /></></ProtectedRoute>} />
         <Route path="/contact" element={<ProtectedRoute><><Navbar /><Contact /><Footer /></></ProtectedRoute>} />
         <Route path="/sessions" element={<ProtectedRoute><><Navbar /><Sessions /><Footer /></></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
       </Routes>
     </BrowserRouter>
   )
