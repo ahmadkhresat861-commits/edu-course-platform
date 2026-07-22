@@ -1,356 +1,226 @@
-{/* =========================
-    Users Management
-========================= */}
+// =========================
+// Fetch Users
+// =========================
 
-{activeTab === 'users' && (
-  <>
-    {/* Create User */}
+const fetchUsers = async () => {
+  setUsersLoading(true);
+  setUserStatus('');
 
-    <div
-      style={{
-        background: 'white',
-        borderRadius: '12px',
-        padding: '30px',
-        marginBottom: '30px',
-        boxShadow:
-          '0 4px 15px rgba(0,0,0,0.08)',
-      }}
-    >
-      <h2
-        style={{
-          color: '#003366',
-          marginTop: 0,
-        }}
-      >
-        <i className="fas fa-user-plus"></i>{' '}
-        Create New User
-      </h2>
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-      <form onSubmit={createUser}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '15px',
-          }}
-        >
-          <input
-            type="email"
-            placeholder="Email"
-            value={newUserEmail}
-            onChange={(e) =>
-              setNewUserEmail(e.target.value)
-            }
-            style={{
-              padding: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-            }}
-          />
+    if (!session?.access_token) {
+      throw new Error('You are not logged in');
+    }
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={newUserPassword}
-            onChange={(e) =>
-              setNewUserPassword(e.target.value)
-            }
-            style={{
-              padding: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-            }}
-          />
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-          <input
-            type="text"
-            placeholder="Username"
-            value={newUserUsername}
-            onChange={(e) =>
-              setNewUserUsername(e.target.value)
-            }
-            style={{
-              padding: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-            }}
-          />
+    const result = await response.json();
 
-          <select
-            value={newUserType}
-            onChange={(e) =>
-              setNewUserType(e.target.value)
-            }
-            style={{
-              padding: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-            }}
-          >
-            <option value="user">
-              User
-            </option>
+    if (!response.ok) {
+      throw new Error(
+        result.error || 'Failed to load users'
+      );
+    }
 
-            <option value="admin">
-              Admin
-            </option>
-          </select>
-        </div>
+    setUsers(result.users || []);
 
-        {userStatus && (
-          <p
-            style={{
-              color:
-                userStatus.includes(
-                  'successfully'
-                )
-                  ? '#10b981'
-                  : '#ef4444',
-              marginTop: '15px',
-            }}
-          >
-            {userStatus}
-          </p>
-        )}
+  } catch (error) {
+    console.error(
+      'Error fetching users:',
+      error
+    );
 
-        <button
-          type="submit"
-          disabled={userActionLoading}
-          style={{
-            marginTop: '20px',
-            background: userActionLoading
-              ? '#999'
-              : '#003366',
-            color: 'white',
-            border: 'none',
-            padding: '12px 25px',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '600',
-          }}
-        >
-          <i
-            className={
-              userActionLoading
-                ? 'fas fa-spinner fa-spin'
-                : 'fas fa-user-plus'
-            }
-          ></i>{' '}
+    setUserStatus(
+      'Failed to load users: ' +
+        error.message
+    );
 
-          {userActionLoading
-            ? 'Processing...'
-            : 'Create User'}
-        </button>
-      </form>
-    </div>
+  } finally {
+    setUsersLoading(false);
+  }
+};
 
-    {/* Users Table */}
 
-    <div
-      style={{
-        background: 'white',
-        borderRadius: '12px',
-        padding: '30px',
-        boxShadow:
-          '0 4px 15px rgba(0,0,0,0.08)',
-        overflowX: 'auto',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px',
-        }}
-      >
-        <h2
-          style={{
-            color: '#003366',
-            margin: 0,
-          }}
-        >
-          <i className="fas fa-users"></i>{' '}
-          All Users
-        </h2>
+// =========================
+// Create User
+// =========================
 
-        <button
-          onClick={fetchUsers}
-          disabled={usersLoading}
-          style={{
-            background: '#003366',
-            color: 'white',
-            border: 'none',
-            padding: '10px 18px',
-            borderRadius: '8px',
-            cursor: 'pointer',
-          }}
-        >
-          <i
-            className={
-              usersLoading
-                ? 'fas fa-spinner fa-spin'
-                : 'fas fa-sync'
-            }
-          ></i>{' '}
+const createUser = async (e) => {
+  e.preventDefault();
 
-          Refresh
-        </button>
-      </div>
+  if (
+    !newUserEmail.trim() ||
+    !newUserPassword.trim()
+  ) {
+    setUserStatus(
+      'Email and password are required.'
+    );
 
-      {usersLoading ? (
-        <p
-          style={{
-            textAlign: 'center',
-            color: '#888',
-            padding: '40px',
-          }}
-        >
-          <i className="fas fa-spinner fa-spin"></i>{' '}
-          Loading users...
-        </p>
-      ) : users.length === 0 ? (
-        <p
-          style={{
-            textAlign: 'center',
-            color: '#888',
-            padding: '40px',
-          }}
-        >
-          No users found.
-        </p>
-      ) : (
-        <table
-          style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-          }}
-        >
-          <thead>
-            <tr
-              style={{
-                background: '#003366',
-                color: 'white',
-              }}
-            >
-              <th style={{ padding: '15px' }}>
-                ID
-              </th>
+    return;
+  }
 
-              <th style={{ padding: '15px' }}>
-                Email
-              </th>
+  setUserActionLoading(true);
+  setUserStatus('');
 
-              <th style={{ padding: '15px' }}>
-                Created At
-              </th>
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-              <th style={{ padding: '15px' }}>
-                Status
-              </th>
+    if (!session?.access_token) {
+      throw new Error(
+        'You are not logged in'
+      );
+    }
 
-              <th style={{ padding: '15px' }}>
-                Actions
-              </th>
-            </tr>
-          </thead>
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'create',
+          email: newUserEmail.trim(),
+          password: newUserPassword,
+          username:
+            newUserUsername.trim(),
+          type: newUserType,
+        }),
+      }
+    );
 
-          <tbody>
-            {users.map((user) => (
-              <tr
-                key={user.id}
-                style={{
-                  borderBottom:
-                    '1px solid #f0f0f0',
-                }}
-              >
-                <td
-                  style={{
-                    padding: '15px',
-                    fontSize: '12px',
-                  }}
-                >
-                  {user.id}
-                </td>
+    const result = await response.json();
 
-                <td
-                  style={{
-                    padding: '15px',
-                    fontWeight: '600',
-                  }}
-                >
-                  {user.email || '-'}
-                </td>
+    if (!response.ok) {
+      throw new Error(
+        result.error ||
+          'Failed to create user'
+      );
+    }
 
-                <td
-                  style={{
-                    padding: '15px',
-                  }}
-                >
-                  {user.created_at
-                    ? new Date(
-                        user.created_at
-                      ).toLocaleString()
-                    : '-'}
-                </td>
+    setUserStatus(
+      'User created successfully!'
+    );
 
-                <td
-                  style={{
-                    padding: '15px',
-                  }}
-                >
-                  {user.email_confirmed_at ? (
-                    <span
-                      style={{
-                        color: '#10b981',
-                        fontWeight: '600',
-                      }}
-                    >
-                      Confirmed
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        color: '#f0a500',
-                        fontWeight: '600',
-                      }}
-                    >
-                      Not Confirmed
-                    </span>
-                  )}
-                </td>
+    // Clear form
+    setNewUserEmail('');
+    setNewUserPassword('');
+    setNewUserUsername('');
+    setNewUserType('user');
 
-                <td
-                  style={{
-                    padding: '15px',
-                  }}
-                >
-                  <button
-                    onClick={() =>
-                      deleteUser(user.id)
-                    }
-                    disabled={
-                      userActionLoading
-                    }
-                    style={{
-                      background: '#ef4444',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <i className="fas fa-trash"></i>{' '}
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  </>
-)}
+    // Refresh users
+    await fetchUsers();
+
+  } catch (error) {
+    console.error(
+      'Error creating user:',
+      error
+    );
+
+    setUserStatus(
+      'Failed to create user: ' +
+        error.message
+    );
+
+  } finally {
+    setUserActionLoading(false);
+  }
+};
+
+
+// =========================
+// Delete User
+// =========================
+
+const deleteUser = async (userId) => {
+  const confirmed = window.confirm(
+    'Are you sure you want to delete this user?'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setUserActionLoading(true);
+  setUserStatus('');
+
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error(
+        'You are not logged in'
+      );
+    }
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'delete',
+          userId: userId,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error ||
+          'Failed to delete user'
+      );
+    }
+
+    setUserStatus(
+      'User deleted successfully!'
+    );
+
+    // Remove user immediately from UI
+    setUsers((currentUsers) =>
+      currentUsers.filter(
+        (user) =>
+          user.id !== userId
+      )
+    );
+
+  } catch (error) {
+    console.error(
+      'Error deleting user:',
+      error
+    );
+
+    setUserStatus(
+      'Failed to delete user: ' +
+        error.message
+    );
+
+  } finally {
+    setUserActionLoading(false);
+  }
+};
