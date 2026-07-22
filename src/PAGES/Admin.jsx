@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import '../App.css';
-
 const Admin = () => {
   const navigate = useNavigate();
-
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
-
   // =========================
   // Data States
   // =========================
@@ -17,7 +14,6 @@ const Admin = () => {
   const [sessions, setSessions] = useState([]);
   const [courses, setCourses] = useState([]);
   const [users, setUsers] = useState([]);
-
   // =========================
   // Loading States
   // =========================
@@ -27,7 +23,6 @@ const Admin = () => {
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userActionLoading, setUserActionLoading] = useState(false);
-
   // =========================
   // User Form States
   // =========================
@@ -36,7 +31,6 @@ const Admin = () => {
   const [newUserUsername, setNewUserUsername] = useState('');
   const [newUserType, setNewUserType] = useState('user');
   const [userStatus, setUserStatus] = useState('');
-
   // =========================
   // Notification States
   // =========================
@@ -44,7 +38,6 @@ const Admin = () => {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [sendingNotification, setSendingNotification] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState('');
-
   // =========================
   // Course Form States
   // =========================
@@ -52,10 +45,8 @@ const Admin = () => {
   const [courseCategory, setCourseCategory] = useState('');
   const [courseStudents, setCourseStudents] = useState(0);
   const [courseRating, setCourseRating] = useState(0);
-
   const [editingCourseId, setEditingCourseId] = useState(null);
   const [courseStatus, setCourseStatus] = useState('');
-
   // =========================
   // Check Admin
   // =========================
@@ -65,87 +56,65 @@ const Admin = () => {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-
         if (!user) {
           navigate('/');
           return;
         }
-
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('type')
           .eq('id', user.id)
           .single();
-
         if (error || !profile || profile.type !== 'admin') {
           navigate('/home');
           return;
         }
-
         setLoading(false);
       } catch (error) {
         console.error('Admin check error:', error);
         navigate('/home');
       }
     };
-
     checkAdmin();
   }, [navigate]);
-
   // =========================
   // Edge Function Helper
   // =========================
-  const callAdminFunction = async (body = null) => {
+  const callAdminFunction = async (body = {}) => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-
     if (!session?.access_token) {
       throw new Error('You are not authenticated.');
     }
-
-    const options = {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-    };
-
-    if (body) {
-      options.body = body;
-    }
-
-    // اسم Edge Function الصحيح
     const { data, error } = await supabase.functions.invoke(
       'quick-action',
-      options
+      {
+        body,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      }
     );
-
     if (error) {
       throw error;
     }
-
     if (data?.error) {
       throw new Error(data.error);
     }
-
     return data;
   };
-
   // =========================
   // Fetch Users
   // =========================
   const fetchUsers = async () => {
     setUsersLoading(true);
     setUserStatus('');
-
     try {
       const data = await callAdminFunction();
-
       setUsers(data?.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
-
       setUserStatus(
         'Failed to load users: ' +
           (error.message || 'Unknown error')
@@ -154,57 +123,41 @@ const Admin = () => {
       setUsersLoading(false);
     }
   };
-
   // =========================
   // Create User
   // =========================
   const createUser = async (e) => {
     e.preventDefault();
-
     if (!newUserEmail.trim() || !newUserPassword.trim()) {
-      setUserStatus(
-        'Email and password are required.'
-      );
+      setUserStatus('Email and password are required.');
       return;
     }
-
     if (newUserPassword.length < 6) {
-      setUserStatus(
-        'Password must be at least 6 characters.'
-      );
+      setUserStatus('Password must be at least 6 characters.');
       return;
     }
-
     setUserActionLoading(true);
     setUserStatus('');
-
     try {
-      const data = await callAdminFunction(
-        JSON.stringify({
-          action: 'create',
-          email: newUserEmail.trim(),
-          password: newUserPassword,
-          username:
-            newUserUsername.trim() ||
-            newUserEmail.split('@')[0],
-          type: newUserType,
-        })
-      );
-
+      const data = await callAdminFunction({
+        action: 'create',
+        email: newUserEmail.trim(),
+        password: newUserPassword,
+        username:
+          newUserUsername.trim() ||
+          newUserEmail.split('@')[0],
+        type: newUserType,
+      });
       setUserStatus(
-        data?.message ||
-          'User created successfully!'
+        data?.message || 'User created successfully!'
       );
-
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserUsername('');
       setNewUserType('user');
-
       await fetchUsers();
     } catch (error) {
       console.error('Error creating user:', error);
-
       setUserStatus(
         'Failed to create user: ' +
           (error.message || 'Unknown error')
@@ -213,7 +166,6 @@ const Admin = () => {
       setUserActionLoading(false);
     }
   };
-
   // =========================
   // Delete User
   // =========================
@@ -221,25 +173,17 @@ const Admin = () => {
     const confirmed = window.confirm(
       'Are you sure you want to delete this user?'
     );
-
     if (!confirmed) return;
-
     setUserActionLoading(true);
     setUserStatus('');
-
     try {
-      const data = await callAdminFunction(
-        JSON.stringify({
-          action: 'delete',
-          userId,
-        })
-      );
-
+      const data = await callAdminFunction({
+        action: 'delete',
+        userId,
+      });
       setUserStatus(
-        data?.message ||
-          'User deleted successfully!'
+        data?.message || 'User deleted successfully!'
       );
-
       setUsers((currentUsers) =>
         currentUsers.filter(
           (user) => user.id !== userId
@@ -247,7 +191,6 @@ const Admin = () => {
       );
     } catch (error) {
       console.error('Error deleting user:', error);
-
       setUserStatus(
         'Failed to delete user: ' +
           (error.message || 'Unknown error')
@@ -256,30 +199,20 @@ const Admin = () => {
       setUserActionLoading(false);
     }
   };
-
   // =========================
   // Fetch Courses
   // =========================
   const fetchCourses = async () => {
     setCoursesLoading(true);
-
     try {
       const { data, error } = await supabase
         .from('courses')
-        .select(
-          'id, title, category, students, rating'
-        )
+        .select('id, title, category, students, rating')
         .order('id', { ascending: false });
-
       if (error) throw error;
-
       setCourses(data || []);
     } catch (error) {
-      console.error(
-        'Error fetching courses:',
-        error
-      );
-
+      console.error('Error fetching courses:', error);
       alert(
         'Failed to load courses: ' +
           error.message
@@ -288,13 +221,11 @@ const Admin = () => {
       setCoursesLoading(false);
     }
   };
-
   // =========================
   // Add / Update Course
   // =========================
   const saveCourse = async (e) => {
     e.preventDefault();
-
     if (
       !courseTitle.trim() ||
       !courseCategory.trim()
@@ -304,7 +235,6 @@ const Admin = () => {
       );
       return;
     }
-
     try {
       const courseData = {
         title: courseTitle.trim(),
@@ -312,47 +242,35 @@ const Admin = () => {
         students: Number(courseStudents) || 0,
         rating: Number(courseRating) || 0,
       };
-
       let error;
-
       if (editingCourseId) {
         const result = await supabase
           .from('courses')
           .update(courseData)
           .eq('id', editingCourseId);
-
         error = result.error;
       } else {
         const result = await supabase
           .from('courses')
           .insert([courseData]);
-
         error = result.error;
       }
-
       if (error) throw error;
-
       setCourseStatus(
         editingCourseId
           ? 'Course updated successfully!'
           : 'Course added successfully!'
       );
-
       resetCourseForm();
-      fetchCourses();
+      await fetchCourses();
     } catch (error) {
-      console.error(
-        'Error saving course:',
-        error
-      );
-
+      console.error('Error saving course:', error);
       setCourseStatus(
         'Failed to save course: ' +
           error.message
       );
     }
   };
-
   // =========================
   // Delete Course
   // =========================
@@ -360,35 +278,26 @@ const Admin = () => {
     const confirmed = window.confirm(
       'Are you sure you want to delete this course?'
     );
-
     if (!confirmed) return;
-
     try {
       const { error } = await supabase
         .from('courses')
         .delete()
         .eq('id', id);
-
       if (error) throw error;
-
       setCourses((currentCourses) =>
         currentCourses.filter(
           (course) => course.id !== id
         )
       );
     } catch (error) {
-      console.error(
-        'Error deleting course:',
-        error
-      );
-
+      console.error('Error deleting course:', error);
       alert(
         'Failed to delete course: ' +
           error.message
       );
     }
   };
-
   // =========================
   // Edit Course
   // =========================
@@ -399,13 +308,11 @@ const Admin = () => {
     setCourseStudents(course.students || 0);
     setCourseRating(course.rating || 0);
     setCourseStatus('');
-
     window.scrollTo({
       top: 0,
       behavior: 'smooth',
     });
   };
-
   // =========================
   // Reset Course Form
   // =========================
@@ -415,33 +322,24 @@ const Admin = () => {
     setCourseCategory('');
     setCourseStudents(0);
     setCourseRating(0);
+    setCourseStatus('');
   };
-
   // =========================
   // Fetch Profiles
   // =========================
   const fetchProfiles = async () => {
     setProfilesLoading(true);
-
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(
-          'id, username, type, bio'
-        )
+        .select('id, username, type, bio')
         .order('username', {
           ascending: true,
         });
-
       if (error) throw error;
-
       setProfiles(data || []);
     } catch (error) {
-      console.error(
-        'Error fetching profiles:',
-        error
-      );
-
+      console.error('Error fetching profiles:', error);
       alert(
         'Failed to load profiles: ' +
           error.message
@@ -450,13 +348,11 @@ const Admin = () => {
       setProfilesLoading(false);
     }
   };
-
   // =========================
   // Fetch Reviews
   // =========================
   const fetchReviews = async () => {
     setReviewsLoading(true);
-
     try {
       const { data, error } = await supabase
         .from('reviews')
@@ -466,16 +362,10 @@ const Admin = () => {
         .order('id', {
           ascending: false,
         });
-
       if (error) throw error;
-
       setReviews(data || []);
     } catch (error) {
-      console.error(
-        'Error fetching reviews:',
-        error
-      );
-
+      console.error('Error fetching reviews:', error);
       alert(
         'Failed to load reviews: ' +
           error.message
@@ -484,13 +374,11 @@ const Admin = () => {
       setReviewsLoading(false);
     }
   };
-
   // =========================
   // Fetch Sessions
   // =========================
   const fetchSessions = async () => {
     setSessionsLoading(true);
-
     try {
       const { data, error } = await supabase
         .from('sessions')
@@ -500,16 +388,10 @@ const Admin = () => {
         .order('id', {
           ascending: false,
         });
-
       if (error) throw error;
-
       setSessions(data || []);
     } catch (error) {
-      console.error(
-        'Error fetching sessions:',
-        error
-      );
-
+      console.error('Error fetching sessions:', error);
       alert(
         'Failed to load sessions: ' +
           error.message
@@ -518,7 +400,6 @@ const Admin = () => {
       setSessionsLoading(false);
     }
   };
-
   // =========================
   // Load Data
   // =========================
@@ -526,30 +407,24 @@ const Admin = () => {
     if (activeTab === 'courses') {
       fetchCourses();
     }
-
     if (activeTab === 'users') {
       fetchUsers();
     }
-
     if (activeTab === 'profiles') {
       fetchProfiles();
     }
-
     if (activeTab === 'reviews') {
       fetchReviews();
     }
-
     if (activeTab === 'sessions') {
       fetchSessions();
     }
   }, [activeTab]);
-
   // =========================
   // Send Notification
   // =========================
   const sendNotification = async (e) => {
     e.preventDefault();
-
     if (
       !notificationTitle.trim() ||
       !notificationMessage.trim()
@@ -557,31 +432,23 @@ const Admin = () => {
       setNotificationStatus(
         'Please enter notification title and message.'
       );
-
       return;
     }
-
     setSendingNotification(true);
     setNotificationStatus('');
-
     try {
       const { error } = await supabase
         .from('notifications')
         .insert([
           {
-            title:
-              notificationTitle.trim(),
-            message:
-              notificationMessage.trim(),
+            title: notificationTitle.trim(),
+            message: notificationMessage.trim(),
           },
         ]);
-
       if (error) throw error;
-
       setNotificationStatus(
         'Notification sent successfully!'
       );
-
       setNotificationTitle('');
       setNotificationMessage('');
     } catch (error) {
@@ -589,7 +456,6 @@ const Admin = () => {
         'Error sending notification:',
         error
       );
-
       setNotificationStatus(
         'Failed to send notification: ' +
           error.message
@@ -598,7 +464,6 @@ const Admin = () => {
       setSendingNotification(false);
     }
   };
-
   // =========================
   // Loading Screen
   // =========================
@@ -622,7 +487,6 @@ const Admin = () => {
       </div>
     );
   }
-
   // =========================
   // Stats
   // =========================
@@ -652,7 +516,6 @@ const Admin = () => {
       color: '#6366f1',
     },
   ];
-
   return (
     <div
       style={{
@@ -661,6 +524,9 @@ const Admin = () => {
         display: 'flex',
       }}
     >
+      {/* =========================
+          SIDEBAR
+      ========================= */}
       <div
         style={{
           width: '250px',
@@ -696,7 +562,6 @@ const Admin = () => {
             Zephyr Admin
           </h2>
         </div>
-
         {[
           {
             icon: 'fas fa-chart-pie',
@@ -736,9 +601,7 @@ const Admin = () => {
         ].map((item, i) => (
           <div
             key={i}
-            onClick={() =>
-              setActiveTab(item.tab)
-            }
+            onClick={() => setActiveTab(item.tab)}
             style={{
               padding: '15px 25px',
               cursor: 'pointer',
@@ -764,7 +627,6 @@ const Admin = () => {
                     : '#a8c8f0',
               }}
             ></i>
-
             <span
               style={{
                 color:
@@ -777,7 +639,6 @@ const Admin = () => {
             </span>
           </div>
         ))}
-
         <div
           onClick={() => navigate('/home')}
           style={{
@@ -795,7 +656,6 @@ const Admin = () => {
               color: '#a8c8f0',
             }}
           ></i>
-
           <span
             style={{
               color: '#a8c8f0',
@@ -805,7 +665,9 @@ const Admin = () => {
           </span>
         </div>
       </div>
-
+      {/* =========================
+          MAIN CONTENT
+      ========================= */}
       <div
         style={{
           marginLeft: '250px',
@@ -813,6 +675,7 @@ const Admin = () => {
           padding: '40px',
         }}
       >
+        {/* PAGE TITLE */}
         <div
           style={{
             marginBottom: '30px',
@@ -829,42 +692,36 @@ const Admin = () => {
                 Overview
               </>
             )}
-
             {activeTab === 'courses' && (
               <>
                 <i className="fas fa-book"></i>{' '}
                 Courses Management
               </>
             )}
-
             {activeTab === 'users' && (
               <>
                 <i className="fas fa-users"></i>{' '}
                 Users Management
               </>
             )}
-
             {activeTab === 'notifications' && (
               <>
                 <i className="fas fa-bell"></i>{' '}
                 Notifications
               </>
             )}
-
             {activeTab === 'profiles' && (
               <>
                 <i className="fas fa-user-circle"></i>{' '}
                 Profiles Management
               </>
             )}
-
             {activeTab === 'reviews' && (
               <>
                 <i className="fas fa-star"></i>{' '}
                 Reviews Management
               </>
             )}
-
             {activeTab === 'sessions' && (
               <>
                 <i className="fas fa-video"></i>{' '}
@@ -873,7 +730,9 @@ const Admin = () => {
             )}
           </h1>
         </div>
-
+        {/* =========================
+            OVERVIEW
+        ========================= */}
         {activeTab === 'overview' && (
           <>
             <div
@@ -909,7 +768,6 @@ const Admin = () => {
                       display: 'block',
                     }}
                   ></i>
-
                   <h2
                     style={{
                       color: stat.color,
@@ -919,7 +777,6 @@ const Admin = () => {
                   >
                     {stat.value}
                   </h2>
-
                   <p
                     style={{
                       color: '#888',
@@ -931,7 +788,6 @@ const Admin = () => {
                 </div>
               ))}
             </div>
-
             <div
               style={{
                 background: 'white',
@@ -949,7 +805,6 @@ const Admin = () => {
                 <i className="fas fa-cogs"></i>{' '}
                 Admin Control Panel
               </h2>
-
               <p
                 style={{
                   color: '#888',
@@ -962,7 +817,9 @@ const Admin = () => {
             </div>
           </>
         )}
-
+        {/* =========================
+            COURSES
+        ========================= */}
         {activeTab === 'courses' && (
           <>
             <div
@@ -986,7 +843,6 @@ const Admin = () => {
                   ? 'Edit Course'
                   : 'Add New Course'}
               </h2>
-
               <form onSubmit={saveCourse}>
                 <div
                   style={{
@@ -1001,74 +857,58 @@ const Admin = () => {
                     placeholder="Course Title"
                     value={courseTitle}
                     onChange={(e) =>
-                      setCourseTitle(
-                        e.target.value
-                      )
+                      setCourseTitle(e.target.value)
                     }
                     style={{
                       padding: '14px',
-                      border:
-                        '1px solid #ddd',
+                      border: '1px solid #ddd',
                       borderRadius: '8px',
                     }}
                   />
-
                   <input
                     type="text"
                     placeholder="Category"
                     value={courseCategory}
                     onChange={(e) =>
-                      setCourseCategory(
-                        e.target.value
-                      )
+                      setCourseCategory(e.target.value)
                     }
                     style={{
                       padding: '14px',
-                      border:
-                        '1px solid #ddd',
+                      border: '1px solid #ddd',
                       borderRadius: '8px',
                     }}
                   />
-
                   <input
                     type="number"
                     placeholder="Students"
                     value={courseStudents}
                     onChange={(e) =>
-                      setCourseStudents(
-                        e.target.value
-                      )
+                      setCourseStudents(e.target.value)
                     }
                     min="0"
                     style={{
                       padding: '14px',
-                      border:
-                        '1px solid #ddd',
+                      border: '1px solid #ddd',
                       borderRadius: '8px',
                     }}
                   />
-
                   <input
                     type="number"
                     placeholder="Rating"
                     value={courseRating}
                     onChange={(e) =>
-                      setCourseRating(
-                        e.target.value
-                      )
+                      setCourseRating(e.target.value)
                     }
                     min="0"
                     max="5"
                     step="0.1"
                     style={{
                       padding: '14px',
-                      border:
-                        '1px solid #ddd',
+                      border: '1px solid #ddd',
                       borderRadius: '8px',
                     }}
                   />
                 </div>
-
                 {courseStatus && (
                   <p
                     style={{
@@ -1084,7 +924,6 @@ const Admin = () => {
                     {courseStatus}
                   </p>
                 )}
-
                 <div
                   style={{
                     marginTop: '20px',
@@ -1098,8 +937,7 @@ const Admin = () => {
                       background: '#003366',
                       color: 'white',
                       border: 'none',
-                      padding:
-                        '12px 25px',
+                      padding: '12px 25px',
                       borderRadius: '8px',
                       cursor: 'pointer',
                       fontWeight: '600',
@@ -1116,19 +954,15 @@ const Admin = () => {
                       ? 'Update Course'
                       : 'Add Course'}
                   </button>
-
                   {editingCourseId && (
                     <button
                       type="button"
-                      onClick={
-                        resetCourseForm
-                      }
+                      onClick={resetCourseForm}
                       style={{
                         background: '#999',
                         color: 'white',
                         border: 'none',
-                        padding:
-                          '12px 25px',
+                        padding: '12px 25px',
                         borderRadius: '8px',
                         cursor: 'pointer',
                       }}
@@ -1139,7 +973,6 @@ const Admin = () => {
                 </div>
               </form>
             </div>
-
             <div
               style={{
                 background: 'white',
@@ -1153,8 +986,7 @@ const Admin = () => {
               <div
                 style={{
                   display: 'flex',
-                  justifyContent:
-                    'space-between',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                   marginBottom: '20px',
                 }}
@@ -1167,24 +999,28 @@ const Admin = () => {
                 >
                   All Courses
                 </h2>
-
                 <button
                   onClick={fetchCourses}
+                  disabled={coursesLoading}
                   style={{
                     background: '#003366',
                     color: 'white',
                     border: 'none',
-                    padding:
-                      '10px 18px',
+                    padding: '10px 18px',
                     borderRadius: '8px',
                     cursor: 'pointer',
                   }}
                 >
-                  <i className="fas fa-sync"></i>{' '}
+                  <i
+                    className={
+                      coursesLoading
+                        ? 'fas fa-spinner fa-spin'
+                        : 'fas fa-sync'
+                    }
+                  ></i>{' '}
                   Refresh
                 </button>
               </div>
-
               {coursesLoading ? (
                 <p
                   style={{
@@ -1209,150 +1045,106 @@ const Admin = () => {
                 <table
                   style={{
                     width: '100%',
-                    borderCollapse:
-                      'collapse',
+                    borderCollapse: 'collapse',
                   }}
                 >
                   <thead>
                     <tr
                       style={{
-                        background:
-                          '#003366',
+                        background: '#003366',
                         color: 'white',
                       }}
                     >
-                      <th style={{ padding: '15px' }}>
-                        ID
-                      </th>
-                      <th style={{ padding: '15px' }}>
-                        Course
-                      </th>
-                      <th style={{ padding: '15px' }}>
-                        Category
-                      </th>
-                      <th style={{ padding: '15px' }}>
-                        Students
-                      </th>
-                      <th style={{ padding: '15px' }}>
-                        Rating
-                      </th>
-                      <th style={{ padding: '15px' }}>
-                        Actions
-                      </th>
+                      <th style={{ padding: '15px' }}>ID</th>
+                      <th style={{ padding: '15px' }}>Course</th>
+                      <th style={{ padding: '15px' }}>Category</th>
+                      <th style={{ padding: '15px' }}>Students</th>
+                      <th style={{ padding: '15px' }}>Rating</th>
+                      <th style={{ padding: '15px' }}>Actions</th>
                     </tr>
                   </thead>
-
                   <tbody>
-                    {courses.map(
-                      (course) => (
-                        <tr
-                          key={
-                            course.id
-                          }
+                    {courses.map((course) => (
+                      <tr
+                        key={course.id}
+                        style={{
+                          borderBottom:
+                            '1px solid #f0f0f0',
+                        }}
+                      >
+                        <td style={{ padding: '15px' }}>
+                          {course.id}
+                        </td>
+                        <td
                           style={{
-                            borderBottom:
-                              '1px solid #f0f0f0',
+                            padding: '15px',
+                            fontWeight: '600',
+                            color: '#003366',
                           }}
                         >
-                          <td style={{ padding: '15px' }}>
-                            {course.id}
-                          </td>
-
-                          <td
+                          {course.title}
+                        </td>
+                        <td style={{ padding: '15px' }}>
+                          {course.category}
+                        </td>
+                        <td style={{ padding: '15px' }}>
+                          {course.students}
+                        </td>
+                        <td
+                          style={{
+                            padding: '15px',
+                            color: '#f0a500',
+                            fontWeight: '600',
+                          }}
+                        >
+                          ⭐ {course.rating}
+                        </td>
+                        <td style={{ padding: '15px' }}>
+                          <button
+                            onClick={() =>
+                              editCourse(course)
+                            }
                             style={{
-                              padding: '15px',
-                              fontWeight:
-                                '600',
-                              color:
-                                '#003366',
+                              background: '#003366',
+                              color: 'white',
+                              border: 'none',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              marginRight: '8px',
                             }}
                           >
-                            {course.title}
-                          </td>
-
-                          <td style={{ padding: '15px' }}>
-                            {course.category}
-                          </td>
-
-                          <td style={{ padding: '15px' }}>
-                            {course.students}
-                          </td>
-
-                          <td
+                            <i className="fas fa-edit"></i>{' '}
+                            Edit
+                          </button>
+                          <button
+                            onClick={() =>
+                              deleteCourse(course.id)
+                            }
                             style={{
-                              padding: '15px',
-                              color:
-                                '#f0a500',
-                              fontWeight:
-                                '600',
+                              background: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
                             }}
                           >
-                            ⭐ {course.rating}
-                          </td>
-
-                          <td style={{ padding: '15px' }}>
-                            <button
-                              onClick={() =>
-                                editCourse(
-                                  course
-                                )
-                              }
-                              style={{
-                                background:
-                                  '#003366',
-                                color:
-                                  'white',
-                                border:
-                                  'none',
-                                padding:
-                                  '8px 12px',
-                                borderRadius:
-                                  '6px',
-                                cursor:
-                                  'pointer',
-                                marginRight:
-                                  '8px',
-                              }}
-                            >
-                              <i className="fas fa-edit"></i>{' '}
-                              Edit
-                            </button>
-
-                            <button
-                              onClick={() =>
-                                deleteCourse(
-                                  course.id
-                                )
-                              }
-                              style={{
-                                background:
-                                  '#ef4444',
-                                color:
-                                  'white',
-                                border:
-                                  'none',
-                                padding:
-                                  '8px 12px',
-                                borderRadius:
-                                  '6px',
-                                cursor:
-                                  'pointer',
-                              }}
-                            >
-                              <i className="fas fa-trash"></i>{' '}
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    )}
+                            <i className="fas fa-trash"></i>{' '}
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               )}
             </div>
           </>
         )}
-
+        {/* =========================
+            USERS
+        ========================= */}
         {activeTab === 'users' && (
           <>
             <div
@@ -1374,7 +1166,6 @@ const Admin = () => {
                 <i className="fas fa-user-plus"></i>{' '}
                 Create New User
               </h2>
-
               <form onSubmit={createUser}>
                 <div
                   style={{
@@ -1389,76 +1180,59 @@ const Admin = () => {
                     placeholder="Email"
                     value={newUserEmail}
                     onChange={(e) =>
-                      setNewUserEmail(
-                        e.target.value
-                      )
+                      setNewUserEmail(e.target.value)
                     }
                     style={{
                       padding: '14px',
-                      border:
-                        '1px solid #ddd',
+                      border: '1px solid #ddd',
                       borderRadius: '8px',
                     }}
                   />
-
                   <input
                     type="password"
                     placeholder="Password"
                     value={newUserPassword}
                     onChange={(e) =>
-                      setNewUserPassword(
-                        e.target.value
-                      )
+                      setNewUserPassword(e.target.value)
                     }
                     style={{
                       padding: '14px',
-                      border:
-                        '1px solid #ddd',
+                      border: '1px solid #ddd',
                       borderRadius: '8px',
                     }}
                   />
-
                   <input
                     type="text"
                     placeholder="Username"
                     value={newUserUsername}
                     onChange={(e) =>
-                      setNewUserUsername(
-                        e.target.value
-                      )
+                      setNewUserUsername(e.target.value)
                     }
                     style={{
                       padding: '14px',
-                      border:
-                        '1px solid #ddd',
+                      border: '1px solid #ddd',
                       borderRadius: '8px',
                     }}
                   />
-
                   <select
                     value={newUserType}
                     onChange={(e) =>
-                      setNewUserType(
-                        e.target.value
-                      )
+                      setNewUserType(e.target.value)
                     }
                     style={{
                       padding: '14px',
-                      border:
-                        '1px solid #ddd',
+                      border: '1px solid #ddd',
                       borderRadius: '8px',
                     }}
                   >
                     <option value="user">
                       User
                     </option>
-
                     <option value="admin">
                       Admin
                     </option>
                   </select>
                 </div>
-
                 {userStatus && (
                   <p
                     style={{
@@ -1474,12 +1248,9 @@ const Admin = () => {
                     {userStatus}
                   </p>
                 )}
-
                 <button
                   type="submit"
-                  disabled={
-                    userActionLoading
-                  }
+                  disabled={userActionLoading}
                   style={{
                     marginTop: '20px',
                     background:
@@ -1488,8 +1259,7 @@ const Admin = () => {
                         : '#003366',
                     color: 'white',
                     border: 'none',
-                    padding:
-                      '12px 25px',
+                    padding: '12px 25px',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     fontWeight: '600',
@@ -1508,7 +1278,6 @@ const Admin = () => {
                 </button>
               </form>
             </div>
-
             <div
               style={{
                 background: 'white',
@@ -1522,8 +1291,7 @@ const Admin = () => {
               <div
                 style={{
                   display: 'flex',
-                  justifyContent:
-                    'space-between',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                   marginBottom: '20px',
                 }}
@@ -1537,18 +1305,14 @@ const Admin = () => {
                   <i className="fas fa-users"></i>{' '}
                   All Users
                 </h2>
-
                 <button
                   onClick={fetchUsers}
-                  disabled={
-                    usersLoading
-                  }
+                  disabled={usersLoading}
                   style={{
                     background: '#003366',
                     color: 'white',
                     border: 'none',
-                    padding:
-                      '10px 18px',
+                    padding: '10px 18px',
                     borderRadius: '8px',
                     cursor: 'pointer',
                   }}
@@ -1563,7 +1327,6 @@ const Admin = () => {
                   Refresh
                 </button>
               </div>
-
               {userStatus && (
                 <p
                   style={{
@@ -1578,7 +1341,6 @@ const Admin = () => {
                   {userStatus}
                 </p>
               )}
-
               {usersLoading ? (
                 <p
                   style={{
@@ -1604,40 +1366,33 @@ const Admin = () => {
                 <table
                   style={{
                     width: '100%',
-                    borderCollapse:
-                      'collapse',
+                    borderCollapse: 'collapse',
                   }}
                 >
                   <thead>
                     <tr
                       style={{
-                        background:
-                          '#003366',
+                        background: '#003366',
                         color: 'white',
                       }}
                     >
                       <th style={{ padding: '15px' }}>
                         ID
                       </th>
-
                       <th style={{ padding: '15px' }}>
                         Email
                       </th>
-
                       <th style={{ padding: '15px' }}>
                         Created At
                       </th>
-
                       <th style={{ padding: '15px' }}>
                         Status
                       </th>
-
                       <th style={{ padding: '15px' }}>
                         Actions
                       </th>
                     </tr>
                   </thead>
-
                   <tbody>
                     {users.map((user) => (
                       <tr
@@ -1655,7 +1410,6 @@ const Admin = () => {
                         >
                           {user.id}
                         </td>
-
                         <td
                           style={{
                             padding: '15px',
@@ -1664,31 +1418,19 @@ const Admin = () => {
                         >
                           {user.email || '-'}
                         </td>
-
-                        <td
-                          style={{
-                            padding: '15px',
-                          }}
-                        >
+                        <td style={{ padding: '15px' }}>
                           {user.created_at
                             ? new Date(
                                 user.created_at
                               ).toLocaleString()
                             : '-'}
                         </td>
-
-                        <td
-                          style={{
-                            padding: '15px',
-                          }}
-                        >
+                        <td style={{ padding: '15px' }}>
                           {user.email_confirmed_at ? (
                             <span
                               style={{
-                                color:
-                                  '#10b981',
-                                fontWeight:
-                                  '600',
+                                color: '#10b981',
+                                fontWeight: '600',
                               }}
                             >
                               Confirmed
@@ -1696,44 +1438,32 @@ const Admin = () => {
                           ) : (
                             <span
                               style={{
-                                color:
-                                  '#f0a500',
-                                fontWeight:
-                                  '600',
+                                color: '#f0a500',
+                                fontWeight: '600',
                               }}
                             >
                               Not Confirmed
                             </span>
                           )}
                         </td>
-
-                        <td
-                          style={{
-                            padding: '15px',
-                          }}
-                        >
+                        <td style={{ padding: '15px' }}>
                           <button
                             onClick={() =>
-                              deleteUser(
-                                user.id
-                              )
+                              deleteUser(user.id)
                             }
-                            disabled={
-                              userActionLoading
-                            }
+                            disabled={userActionLoading}
                             style={{
-                              background:
-                                '#ef4444',
-                              color:
-                                'white',
-                              border:
-                                'none',
-                              padding:
-                                '8px 12px',
-                              borderRadius:
-                                '6px',
-                              cursor:
-                                'pointer',
+                              background: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              cursor: userActionLoading
+                                ? 'not-allowed'
+                                : 'pointer',
+                              opacity: userActionLoading
+                                ? 0.6
+                                : 1,
                             }}
                           >
                             <i className="fas fa-trash"></i>{' '}
@@ -1748,7 +1478,9 @@ const Admin = () => {
             </div>
           </>
         )}
-
+        {/* =========================
+            NOTIFICATIONS
+        ========================= */}
         {activeTab === 'notifications' && (
           <div
             style={{
@@ -1768,62 +1500,39 @@ const Admin = () => {
               <i className="fas fa-bell"></i>{' '}
               Send Notification
             </h2>
-
-            <form
-              onSubmit={
-                sendNotification
-              }
-            >
+            <form onSubmit={sendNotification}>
               <input
                 type="text"
-                value={
-                  notificationTitle
-                }
+                value={notificationTitle}
                 onChange={(e) =>
-                  setNotificationTitle(
-                    e.target.value
-                  )
+                  setNotificationTitle(e.target.value)
                 }
                 placeholder="Notification Title"
                 style={{
                   width: '100%',
                   padding: '14px',
-                  marginBottom:
-                    '15px',
-                  border:
-                    '1px solid #ddd',
-                  borderRadius:
-                    '8px',
-                  boxSizing:
-                    'border-box',
+                  marginBottom: '15px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  boxSizing: 'border-box',
                 }}
               />
-
               <textarea
-                value={
-                  notificationMessage
-                }
+                value={notificationMessage}
                 onChange={(e) =>
-                  setNotificationMessage(
-                    e.target.value
-                  )
+                  setNotificationMessage(e.target.value)
                 }
                 placeholder="Notification Message"
                 rows="5"
                 style={{
                   width: '100%',
                   padding: '14px',
-                  marginBottom:
-                    '15px',
-                  border:
-                    '1px solid #ddd',
-                  borderRadius:
-                    '8px',
-                  boxSizing:
-                    'border-box',
+                  marginBottom: '15px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  boxSizing: 'border-box',
                 }}
               />
-
               {notificationStatus && (
                 <p
                   style={{
@@ -1838,12 +1547,9 @@ const Admin = () => {
                   {notificationStatus}
                 </p>
               )}
-
               <button
                 type="submit"
-                disabled={
-                  sendingNotification
-                }
+                disabled={sendingNotification}
                 style={{
                   background:
                     sendingNotification
@@ -1851,12 +1557,9 @@ const Admin = () => {
                       : '#003366',
                   color: 'white',
                   border: 'none',
-                  padding:
-                    '14px 25px',
-                  borderRadius:
-                    '8px',
-                  cursor:
-                    'pointer',
+                  padding: '14px 25px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
                 }}
               >
                 <i
@@ -1873,7 +1576,9 @@ const Admin = () => {
             </form>
           </div>
         )}
-
+        {/* =========================
+            PROFILES
+        ========================= */}
         {activeTab === 'profiles' && (
           <div
             style={{
@@ -1893,78 +1598,77 @@ const Admin = () => {
               <i className="fas fa-user-circle"></i>{' '}
               Profiles
             </h2>
-
             {profilesLoading ? (
               <p>Loading profiles...</p>
+            ) : profiles.length === 0 ? (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: '#888',
+                  padding: '40px',
+                }}
+              >
+                No profiles found.
+              </p>
             ) : (
               <table
                 style={{
                   width: '100%',
-                  borderCollapse:
-                    'collapse',
+                  borderCollapse: 'collapse',
                 }}
               >
                 <thead>
                   <tr
                     style={{
-                      background:
-                        '#003366',
+                      background: '#003366',
                       color: 'white',
                     }}
                   >
                     <th style={{ padding: '15px' }}>
                       ID
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Username
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Type
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Bio
                     </th>
                   </tr>
                 </thead>
-
                 <tbody>
-                  {profiles.map(
-                    (profile) => (
-                      <tr
-                        key={
-                          profile.id
-                        }
-                      >
-                        <td style={{ padding: '15px' }}>
-                          {profile.id}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {profile.username ||
-                            '-'}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {profile.type ||
-                            '-'}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {profile.bio ||
-                            '-'}
-                        </td>
-                      </tr>
-                    )
-                  )}
+                  {profiles.map((profile) => (
+                    <tr
+                      key={profile.id}
+                      style={{
+                        borderBottom:
+                          '1px solid #f0f0f0',
+                      }}
+                    >
+                      <td style={{ padding: '15px' }}>
+                        {profile.id}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {profile.username || '-'}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {profile.type || '-'}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {profile.bio || '-'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             )}
           </div>
         )}
-
+        {/* =========================
+            REVIEWS
+        ========================= */}
         {activeTab === 'reviews' && (
           <div
             style={{
@@ -1984,84 +1688,83 @@ const Admin = () => {
               <i className="fas fa-star"></i>{' '}
               Reviews
             </h2>
-
             {reviewsLoading ? (
               <p>Loading reviews...</p>
+            ) : reviews.length === 0 ? (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: '#888',
+                  padding: '40px',
+                }}
+              >
+                No reviews found.
+              </p>
             ) : (
               <table
                 style={{
                   width: '100%',
-                  borderCollapse:
-                    'collapse',
+                  borderCollapse: 'collapse',
                 }}
               >
                 <thead>
                   <tr
                     style={{
-                      background:
-                        '#003366',
+                      background: '#003366',
                       color: 'white',
                     }}
                   >
                     <th style={{ padding: '15px' }}>
                       ID
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Course ID
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       User ID
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Rating
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Comment
                     </th>
                   </tr>
                 </thead>
-
                 <tbody>
-                  {reviews.map(
-                    (review) => (
-                      <tr
-                        key={
-                          review.id
-                        }
-                      >
-                        <td style={{ padding: '15px' }}>
-                          {review.id}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {review.course_id}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {review.user_id}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          ⭐ {review.rating}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {review.comment ||
-                            '-'}
-                        </td>
-                      </tr>
-                    )
-                  )}
+                  {reviews.map((review) => (
+                    <tr
+                      key={review.id}
+                      style={{
+                        borderBottom:
+                          '1px solid #f0f0f0',
+                      }}
+                    >
+                      <td style={{ padding: '15px' }}>
+                        {review.id}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {review.course_id}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {review.user_id}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        ⭐ {review.rating}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {review.comment || '-'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             )}
           </div>
         )}
-
+        {/* =========================
+            SESSIONS
+        ========================= */}
         {activeTab === 'sessions' && (
           <div
             style={{
@@ -2081,81 +1784,75 @@ const Admin = () => {
               <i className="fas fa-video"></i>{' '}
               Sessions
             </h2>
-
             {sessionsLoading ? (
               <p>Loading sessions...</p>
+            ) : sessions.length === 0 ? (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: '#888',
+                  padding: '40px',
+                }}
+              >
+                No sessions found.
+              </p>
             ) : (
               <table
                 style={{
                   width: '100%',
-                  borderCollapse:
-                    'collapse',
+                  borderCollapse: 'collapse',
                 }}
               >
                 <thead>
                   <tr
                     style={{
-                      background:
-                        '#003366',
+                      background: '#003366',
                       color: 'white',
                     }}
                   >
                     <th style={{ padding: '15px' }}>
                       ID
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Title
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Course
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Date
                     </th>
-
                     <th style={{ padding: '15px' }}>
                       Time
                     </th>
                   </tr>
                 </thead>
-
                 <tbody>
-                  {sessions.map(
-                    (session) => (
-                      <tr
-                        key={
-                          session.id
-                        }
-                      >
-                        <td style={{ padding: '15px' }}>
-                          {session.id}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {session.title ||
-                            '-'}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {session.course ||
-                            '-'}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {session.data ||
-                            '-'}
-                        </td>
-
-                        <td style={{ padding: '15px' }}>
-                          {session.time ||
-                            '-'}
-                        </td>
-                      </tr>
-                    )
-                  )}
+                  {sessions.map((session) => (
+                    <tr
+                      key={session.id}
+                      style={{
+                        borderBottom:
+                          '1px solid #f0f0f0',
+                      }}
+                    >
+                      <td style={{ padding: '15px' }}>
+                        {session.id}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {session.title || '-'}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {session.course || '-'}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {session.data || '-'}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {session.time || '-'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             )}
@@ -2165,5 +1862,4 @@ const Admin = () => {
     </div>
   );
 };
-
 export default Admin;
