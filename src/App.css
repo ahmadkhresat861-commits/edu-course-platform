@@ -15,11 +15,11 @@
 [data-theme="light"] body,
 [data-theme="light"] {
   --bg: #f5f5f5;
-  --bg2: #ffffff;
-  --card: #ffffff;
+  --bg2: white;
+  --card: white;
   --text: #1a1a1a;
-  --text2: #555555;
-  --border: #dddddd;
+  --text2: #555;
+  --border: #ddd;
 }
 
 /* ===========================
@@ -40,9 +40,7 @@ body {
   font-family: "Inter", system-ui, sans-serif;
   background: var(--bg, #f5f5f5);
   color: var(--text, #1a1a1a);
-  transition:
-    background 0.3s ease,
-    color 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease;
   overflow-x: hidden;
 }
 
@@ -83,7 +81,6 @@ nav {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   flex-wrap: wrap;
   gap: 10px;
-
   animation: navSlideDown 0.6s ease both;
 }
 
@@ -122,9 +119,7 @@ nav div a {
   font-weight: 500;
   margin-left: 15px;
   font-size: 0.9rem;
-  transition:
-    color 0.3s ease,
-    transform 0.3s ease;
+  transition: color 0.3s ease, transform 0.3s ease;
   cursor: pointer;
   display: inline-block;
 }
@@ -139,7 +134,7 @@ nav div a i {
 }
 
 /* ===========================
-   Login Page
+   Login / Signup Page
 =========================== */
 
 #login {
@@ -320,15 +315,49 @@ nav div a i {
 }
 
 /* ===========================
+   Home Page
+=========================== */
+
+.home-page {
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.home-page.home-visible {
+  opacity: 1;
+}
+
+/* ===========================
    Home Hero
 =========================== */
 
-section#home {
+.home-hero {
+  overflow: hidden;
   background: linear-gradient(135deg, #003366, #005599);
   text-align: center;
   padding: 80px 20px;
   color: white;
   animation: homeFade 0.8s ease both;
+}
+
+.home-hero-content {
+  animation: homeHeroEnter 1s ease forwards;
+}
+
+.home-hero-icon {
+  animation: homeIconFloat 3s ease-in-out infinite;
+}
+
+.home-hero h1 {
+  font-size: 2.8rem;
+  margin-bottom: 15px;
+  line-height: 1.3;
+}
+
+.home-hero p {
+  font-size: 1.1rem;
+  color: #a8c8f0;
+  margin-bottom: 30px;
 }
 
 @keyframes homeFade {
@@ -343,37 +372,34 @@ section#home {
   }
 }
 
-section#home h1 {
-  font-size: 2.8rem;
-  margin-bottom: 15px;
-  line-height: 1.3;
-  animation: slideUp 0.8s 0.2s ease both;
+@keyframes homeHeroEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-section#home h1 i {
-  display: inline-block;
-  animation: iconFloat 3s ease-in-out infinite;
-}
-
-@keyframes iconFloat {
+@keyframes homeIconFloat {
   0%,
   100% {
     transform: translateY(0);
   }
 
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-10px);
   }
 }
 
-section#home p {
-  font-size: 1.1rem;
-  color: #a8c8f0;
-  margin-bottom: 30px;
-  animation: fadeIn 1s 0.4s ease both;
-}
+/* ===========================
+   Home Start Button
+=========================== */
 
-section#home button {
+.home-start-button {
   padding: 16px 45px;
   font-size: 1rem;
   border-radius: 8px;
@@ -391,17 +417,17 @@ section#home button {
   animation: buttonEntrance 0.8s 0.5s ease both;
 }
 
-section#home button:hover {
+.home-start-button:hover {
   background: #d49000;
   transform: translateY(-5px) scale(1.03);
   box-shadow: 0 10px 25px rgba(240, 165, 0, 0.35);
 }
 
-section#home button:active {
+.home-start-button:active {
   transform: translateY(0) scale(0.98);
 }
 
-section#home button i {
+.home-start-button i {
   margin-right: 8px;
 }
 
@@ -423,7 +449,6 @@ section#home button i {
 }
 
 .home-stat-card {
-  min-width: 120px;
   opacity: 0;
   animation: homeStatsEnter 0.7s ease forwards;
   transition:
@@ -464,12 +489,12 @@ section#home button i {
 }
 
 @keyframes homeStatsEnter {
-  from {
+  0% {
     opacity: 0;
     transform: translateY(30px);
   }
 
-  to {
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
@@ -486,20 +511,7 @@ section#home button i {
 }
 
 .home-why-us h1 {
-  margin-bottom: 50px;
   animation: homeTitleEnter 0.8s ease forwards;
-}
-
-@keyframes homeTitleEnter {
-  from {
-    opacity: 0;
-    transform: translateY(25px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .home-features-container {
@@ -508,6 +520,22 @@ section#home button i {
   gap: 30px;
   flex-wrap: wrap;
 }
+
+@keyframes homeTitleEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===========================
+   Feature Cards
+=========================== */
 
 .home-feature-card {
   opacity: 0;
@@ -518,15 +546,15 @@ section#home button i {
 }
 
 .home-feature-card:nth-child(1) {
-  animation-delay: 0.2s;
+  animation-delay: 0.1s;
 }
 
 .home-feature-card:nth-child(2) {
-  animation-delay: 0.35s;
+  animation-delay: 0.2s;
 }
 
 .home-feature-card:nth-child(3) {
-  animation-delay: 0.5s;
+  animation-delay: 0.3s;
 }
 
 .home-feature-card:hover {
@@ -545,12 +573,12 @@ section#home button i {
 }
 
 @keyframes homeFeatureEnter {
-  from {
+  0% {
     opacity: 0;
     transform: translateY(40px);
   }
 
-  to {
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
@@ -769,6 +797,7 @@ footer a:hover {
     font-size: 0.8rem;
   }
 
+  .home-hero h1,
   section#home h1 {
     font-size: 1.8rem;
   }
@@ -801,27 +830,28 @@ footer a:hover {
     justify-content: flex-start;
   }
 
+  .home-hero h1,
   section#home h1 {
     font-size: 1.4rem;
+  }
+
+  .home-hero-content h1 {
+    font-size: 1.8rem;
   }
 
   .home-stats-container {
     gap: 25px;
   }
 
-  .home-feature-card {
-    width: 100% !important;
-  }
-
   .course-card {
     width: 100%;
   }
 
-  #login h1 {
-    font-size: 1.8rem;
+  .home-feature-card {
+    width: 100% !important;
   }
 
-  .home-stat-card h2 {
-    font-size: 2rem;
+  #login h1 {
+    font-size: 1.8rem;
   }
 }
