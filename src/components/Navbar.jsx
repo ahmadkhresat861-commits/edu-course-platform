@@ -7,11 +7,13 @@ import '../App.css';
 const Navbar = () => {
   const navigate = useNavigate();
   const { t, toggleLang, lang, darkMode, toggleDark } = useLang();
+
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const notifRef = useRef(null);
 
   // ── جلب الإشعارات ──────────────────────────────────────────────
@@ -32,7 +34,7 @@ const Navbar = () => {
         if (data) {
           setNotifications(data);
 
-          // احسب عدد الإشعارات غير المقروءة بناءً على وقت آخر قراءة
+          // احسب عدد غير المقروءة بناءً على وقت آخر قراءة
           const lastRead = localStorage.getItem('notif_last_read');
 
           const unreadCount = lastRead
@@ -55,6 +57,46 @@ const Navbar = () => {
     fetchNotifications();
   }, []);
 
+  // ── Realtime Notifications ─────────────────────────────────────
+  useEffect(() => {
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          console.log(
+            'New notification received:',
+            payload.new
+          );
+
+          // إضافة الإشعار الجديد مباشرة في أعلى القائمة
+          setNotifications((current) => [
+            payload.new,
+            ...current,
+          ]);
+
+          // زيادة عدد الإشعارات غير المقروءة
+          setUnread((current) => current + 1);
+        }
+      )
+      .subscribe((status) => {
+        console.log(
+          'Notifications Realtime status:',
+          status
+        );
+      });
+
+    // تنظيف الاتصال عند مغادرة الصفحة
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // ── إغلاق الـ dropdown عند الضغط خارجه ─────────────────────────
   useEffect(() => {
     if (!showNotif) return;
@@ -68,7 +110,10 @@ const Navbar = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener(
+      'mousedown',
+      handleClickOutside
+    );
 
     return () =>
       document.removeEventListener(
@@ -80,10 +125,11 @@ const Navbar = () => {
   // ── فتح / إغلاق قائمة الإشعارات ────────────────────────────────
   const handleNotif = () => {
     const next = !showNotif;
+
     setShowNotif(next);
 
     if (next) {
-      // عند الفتح: صفّر العداد وسجّل وقت القراءة
+      // عند فتح القائمة: تصفير العداد
       setUnread(0);
 
       localStorage.setItem(
@@ -93,7 +139,7 @@ const Navbar = () => {
     }
   };
 
-  // ── تعليم كل الإشعارات كمقروءة ─────────────────────────────────
+  // ── تعليم الكل كمقروء ───────────────────────────────────────────
   const markAllRead = (e) => {
     e.stopPropagation();
 
@@ -119,7 +165,7 @@ const Navbar = () => {
   // ── الواجهة ──────────────────────────────────────────────────────
   return (
     <nav style={{ position: 'relative' }}>
-      
+
       {/* اللوجو */}
       <h2
         onClick={() => navigate('/home')}
@@ -132,6 +178,7 @@ const Navbar = () => {
             marginRight: '8px',
           }}
         ></i>
+
         Zephyr Academy
       </h2>
 
@@ -143,53 +190,61 @@ const Navbar = () => {
           flexWrap: 'wrap',
         }}
       >
+
         <a
           onClick={() => navigate('/home')}
           style={{ cursor: 'pointer' }}
         >
-          <i className="fas fa-home"></i> {t.home}
+          <i className="fas fa-home"></i>{' '}
+          {t.home}
         </a>
 
         <a
           onClick={() => navigate('/courses')}
           style={{ cursor: 'pointer' }}
         >
-          <i className="fas fa-book"></i> {t.courses}
+          <i className="fas fa-book"></i>{' '}
+          {t.courses}
         </a>
 
         <a
           onClick={() => navigate('/dashboard')}
           style={{ cursor: 'pointer' }}
         >
-          <i className="fas fa-chart-bar"></i> {t.dashboard}
+          <i className="fas fa-chart-bar"></i>{' '}
+          {t.dashboard}
         </a>
 
         <a
           onClick={() => navigate('/sessions')}
           style={{ cursor: 'pointer' }}
         >
-          <i className="fas fa-video"></i> {t.sessions}
+          <i className="fas fa-video"></i>{' '}
+          {t.sessions}
         </a>
 
         <a
           onClick={() => navigate('/contact')}
           style={{ cursor: 'pointer' }}
         >
-          <i className="fas fa-headset"></i> {t.contact}
+          <i className="fas fa-headset"></i>{' '}
+          {t.contact}
         </a>
 
         <a
           onClick={() => navigate('/profile')}
           style={{ cursor: 'pointer' }}
         >
-          <i className="fas fa-user"></i> {t.profile}
+          <i className="fas fa-user"></i>{' '}
+          {t.profile}
         </a>
 
         {/* زر الوضع الليلي */}
         <button
           onClick={toggleDark}
           style={{
-            background: 'rgba(255,255,255,0.15)',
+            background:
+              'rgba(255,255,255,0.15)',
             border: 'none',
             color: 'white',
             padding: '6px 12px',
@@ -207,7 +262,8 @@ const Navbar = () => {
         <button
           onClick={toggleLang}
           style={{
-            background: 'rgba(255,255,255,0.15)',
+            background:
+              'rgba(255,255,255,0.15)',
             border: 'none',
             color: 'white',
             padding: '6px 12px',
@@ -231,6 +287,7 @@ const Navbar = () => {
             marginLeft: '5px',
           }}
         >
+
           {/* أيقونة الجرس */}
           <div
             onClick={handleNotif}
@@ -239,7 +296,8 @@ const Navbar = () => {
               width: '40px',
               height: '40px',
               borderRadius: '50%',
-              background: 'rgba(255,255,255,0.15)',
+              background:
+                'rgba(255,255,255,0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -295,6 +353,7 @@ const Navbar = () => {
                 overflow: 'hidden',
               }}
             >
+
               {/* رأس القائمة */}
               <div
                 style={{
@@ -302,7 +361,8 @@ const Navbar = () => {
                   background: '#003366',
                   color: 'white',
                   display: 'flex',
-                  justifyContent: 'space-between',
+                  justifyContent:
+                    'space-between',
                   alignItems: 'center',
                 }}
               >
@@ -421,7 +481,8 @@ const Navbar = () => {
                           : '#f0f0f0'
                       }`,
                       cursor: 'pointer',
-                      transition: 'background 0.15s',
+                      transition:
+                        'background 0.15s',
                     }}
                     onMouseOver={(e) =>
                       (e.currentTarget.style.background =
@@ -438,9 +499,11 @@ const Navbar = () => {
                       style={{
                         display: 'flex',
                         gap: '12px',
-                        alignItems: 'flex-start',
+                        alignItems:
+                          'flex-start',
                       }}
                     >
+
                       <div
                         style={{
                           width: '35px',
@@ -448,8 +511,10 @@ const Navbar = () => {
                           borderRadius: '50%',
                           background: '#003366',
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                          alignItems:
+                            'center',
+                          justifyContent:
+                            'center',
                           flexShrink: 0,
                         }}
                       >
@@ -457,7 +522,8 @@ const Navbar = () => {
                           className="fas fa-bell"
                           style={{
                             color: '#f0a500',
-                            fontSize: '0.9rem',
+                            fontSize:
+                              '0.9rem',
                           }}
                         ></i>
                       </div>
@@ -478,8 +544,10 @@ const Navbar = () => {
 
                         <p
                           style={{
-                            margin: '4px 0 0',
-                            fontSize: '0.85rem',
+                            margin:
+                              '4px 0 0',
+                            fontSize:
+                              '0.85rem',
                             color: darkMode
                               ? '#aaa'
                               : '#555',
@@ -490,8 +558,10 @@ const Navbar = () => {
 
                         <p
                           style={{
-                            margin: '4px 0 0',
-                            fontSize: '0.75rem',
+                            margin:
+                              '4px 0 0',
+                            fontSize:
+                              '0.75rem',
                             color: '#888',
                           }}
                         >
@@ -500,6 +570,7 @@ const Navbar = () => {
                           )}
                         </p>
                       </div>
+
                     </div>
                   </div>
                 ))}
