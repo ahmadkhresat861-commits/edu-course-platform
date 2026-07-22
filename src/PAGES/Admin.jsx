@@ -9,65 +9,44 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
 
-  // Data states
+  // =========================
+  // Data States
+  // =========================
   const [profiles, setProfiles] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [courses, setCourses] = useState([]);
 
-  // Loading states
+  // =========================
+  // Loading States
+  // =========================
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [coursesLoading, setCoursesLoading] = useState(false);
 
-  // Notification states
+  // =========================
+  // Notification States
+  // =========================
   const [notificationTitle, setNotificationTitle] = useState('');
   const [notificationMessage, setNotificationMessage] = useState('');
   const [sendingNotification, setSendingNotification] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState('');
 
-  // Courses - نفس البيانات الموجودة عندك
-  const courses = [
-    {
-      title: 'React Development',
-      students: 45,
-      rating: 4.9,
-      category: 'Frontend',
-    },
-    {
-      title: 'JavaScript Advanced',
-      students: 38,
-      rating: 4.7,
-      category: 'Frontend',
-    },
-    {
-      title: 'HTML & CSS',
-      students: 62,
-      rating: 4.8,
-      category: 'Frontend',
-    },
-    {
-      title: 'Python Programming',
-      students: 29,
-      rating: 4.6,
-      category: 'Backend',
-    },
-    {
-      title: 'UI/UX Design',
-      students: 21,
-      rating: 4.9,
-      category: 'Design',
-    },
-    {
-      title: 'Database & SQL',
-      students: 33,
-      rating: 4.7,
-      category: 'Backend',
-    },
-  ];
+  // =========================
+  // Course Form States
+  // =========================
+  const [courseTitle, setCourseTitle] = useState('');
+  const [courseCategory, setCourseCategory] = useState('');
+  const [courseStudents, setCourseStudents] = useState(0);
+  const [courseRating, setCourseRating] = useState(0);
 
-  // ─────────────────────────────────────────────
+  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [courseStatus, setCourseStatus] = useState('');
+
+  // =========================
   // Check Admin
-  // ─────────────────────────────────────────────
+  // =========================
   useEffect(() => {
     const checkAdmin = async () => {
       const {
@@ -85,9 +64,156 @@ const Admin = () => {
     checkAdmin();
   }, [navigate]);
 
-  // ─────────────────────────────────────────────
+  // =========================
+  // Fetch Courses
+  // =========================
+  const fetchCourses = async () => {
+    setCoursesLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, title, category, students, rating')
+        .order('id', { ascending: false });
+
+      if (error) throw error;
+
+      setCourses(data || []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      alert('Failed to load courses: ' + error.message);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
+  // =========================
+  // Add / Update Course
+  // =========================
+  const saveCourse = async (e) => {
+    e.preventDefault();
+
+    if (!courseTitle.trim() || !courseCategory.trim()) {
+      setCourseStatus('Please enter course title and category.');
+      return;
+    }
+
+    try {
+      const courseData = {
+        title: courseTitle.trim(),
+        category: courseCategory.trim(),
+        students: Number(courseStudents) || 0,
+        rating: Number(courseRating) || 0,
+      };
+
+      let error;
+
+      // Update
+      if (editingCourseId) {
+        const result = await supabase
+          .from('courses')
+          .update(courseData)
+          .eq('id', editingCourseId);
+
+        error = result.error;
+      }
+
+      // Add
+      else {
+        const result = await supabase
+          .from('courses')
+          .insert([courseData]);
+
+        error = result.error;
+      }
+
+      if (error) throw error;
+
+      setCourseStatus(
+        editingCourseId
+          ? 'Course updated successfully!'
+          : 'Course added successfully!'
+      );
+
+      resetCourseForm();
+      fetchCourses();
+
+    } catch (error) {
+      console.error('Error saving course:', error);
+
+      setCourseStatus(
+        'Failed to save course: ' + error.message
+      );
+    }
+  };
+
+  // =========================
+  // Delete Course
+  // =========================
+  const deleteCourse = async (id) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this course?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setCourses((currentCourses) =>
+        currentCourses.filter(
+          (course) => course.id !== id
+        )
+      );
+
+    } catch (error) {
+      console.error('Error deleting course:', error);
+
+      alert(
+        'Failed to delete course: ' +
+          error.message
+      );
+    }
+  };
+
+  // =========================
+  // Edit Course
+  // =========================
+  const editCourse = (course) => {
+    setEditingCourseId(course.id);
+
+    setCourseTitle(course.title || '');
+    setCourseCategory(course.category || '');
+    setCourseStudents(course.students || 0);
+    setCourseRating(course.rating || 0);
+
+    setCourseStatus('');
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
+  // =========================
+  // Reset Course Form
+  // =========================
+  const resetCourseForm = () => {
+    setEditingCourseId(null);
+    setCourseTitle('');
+    setCourseCategory('');
+    setCourseStudents(0);
+    setCourseRating(0);
+  };
+
+  // =========================
   // Fetch Profiles
-  // ─────────────────────────────────────────────
+  // =========================
   const fetchProfiles = async () => {
     setProfilesLoading(true);
 
@@ -100,64 +226,90 @@ const Admin = () => {
       if (error) throw error;
 
       setProfiles(data || []);
+
     } catch (error) {
       console.error('Error fetching profiles:', error);
-      alert('Failed to load profiles: ' + error.message);
+
+      alert(
+        'Failed to load profiles: ' +
+          error.message
+      );
+
     } finally {
       setProfilesLoading(false);
     }
   };
 
-  // ─────────────────────────────────────────────
+  // =========================
   // Fetch Reviews
-  // ─────────────────────────────────────────────
+  // =========================
   const fetchReviews = async () => {
     setReviewsLoading(true);
 
     try {
       const { data, error } = await supabase
         .from('reviews')
-        .select('id, course_id, user_id, rating, comment')
+        .select(
+          'id, course_id, user_id, rating, comment'
+        )
         .order('id', { ascending: false });
 
       if (error) throw error;
 
       setReviews(data || []);
+
     } catch (error) {
       console.error('Error fetching reviews:', error);
-      alert('Failed to load reviews: ' + error.message);
+
+      alert(
+        'Failed to load reviews: ' +
+          error.message
+      );
+
     } finally {
       setReviewsLoading(false);
     }
   };
 
-  // ─────────────────────────────────────────────
+  // =========================
   // Fetch Sessions
-  // ─────────────────────────────────────────────
+  // =========================
   const fetchSessions = async () => {
     setSessionsLoading(true);
 
     try {
       const { data, error } = await supabase
         .from('sessions')
-        .select('id, title, course, data, time')
+        .select(
+          'id, title, course, data, time'
+        )
         .order('id', { ascending: false });
 
       if (error) throw error;
 
       setSessions(data || []);
+
     } catch (error) {
       console.error('Error fetching sessions:', error);
-      alert('Failed to load sessions: ' + error.message);
+
+      alert(
+        'Failed to load sessions: ' +
+          error.message
+      );
+
     } finally {
       setSessionsLoading(false);
     }
   };
 
-  // ─────────────────────────────────────────────
-  // Load data when opening tabs
-  // ─────────────────────────────────────────────
+  // =========================
+  // Load Data
+  // =========================
   useEffect(() => {
+    if (activeTab === 'courses') {
+      fetchCourses();
+    }
+
     if (activeTab === 'profiles') {
       fetchProfiles();
     }
@@ -171,9 +323,9 @@ const Admin = () => {
     }
   }, [activeTab]);
 
-  // ─────────────────────────────────────────────
+  // =========================
   // Send Notification
-  // ─────────────────────────────────────────────
+  // =========================
   const sendNotification = async (e) => {
     e.preventDefault();
 
@@ -184,6 +336,7 @@ const Admin = () => {
       setNotificationStatus(
         'Please enter notification title and message.'
       );
+
       return;
     }
 
@@ -200,9 +353,7 @@ const Admin = () => {
           },
         ]);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setNotificationStatus(
         'Notification sent successfully!'
@@ -210,6 +361,7 @@ const Admin = () => {
 
       setNotificationTitle('');
       setNotificationMessage('');
+
     } catch (error) {
       console.error(
         'Error sending notification:',
@@ -220,14 +372,15 @@ const Admin = () => {
         'Failed to send notification: ' +
           error.message
       );
+
     } finally {
       setSendingNotification(false);
     }
   };
 
-  // ─────────────────────────────────────────────
+  // =========================
   // Loading Screen
-  // ─────────────────────────────────────────────
+  // =========================
   if (loading) {
     return (
       <div
@@ -249,9 +402,9 @@ const Admin = () => {
     );
   }
 
-  // ─────────────────────────────────────────────
+  // =========================
   // Stats
-  // ─────────────────────────────────────────────
+  // =========================
   const stats = [
     {
       icon: 'fas fa-users',
@@ -288,9 +441,9 @@ const Admin = () => {
       }}
     >
 
-      {/* ═══════════════════════════════════════ */}
-      {/* Sidebar */}
-      {/* ═══════════════════════════════════════ */}
+      {/* =========================
+          Sidebar
+      ========================= */}
 
       <div
         style={{
@@ -304,6 +457,7 @@ const Admin = () => {
           overflowY: 'auto',
         }}
       >
+
         <div
           style={{
             padding: '0 25px 30px',
@@ -324,6 +478,7 @@ const Admin = () => {
                 marginRight: '8px',
               }}
             ></i>
+
             Zephyr Admin
           </h2>
         </div>
@@ -384,7 +539,6 @@ const Admin = () => {
                 activeTab === item.tab
                   ? '3px solid #f0a500'
                   : '3px solid transparent',
-              transition: 'all 0.3s',
             }}
           >
             <i
@@ -436,11 +590,12 @@ const Admin = () => {
             Back to Site
           </span>
         </div>
+
       </div>
 
-      {/* ═══════════════════════════════════════ */}
-      {/* Main Content */}
-      {/* ═══════════════════════════════════════ */}
+      {/* =========================
+          Main Content
+      ========================= */}
 
       <div
         style={{
@@ -451,6 +606,7 @@ const Admin = () => {
       >
 
         {/* Header */}
+
         <div
           style={{
             marginBottom: '30px',
@@ -512,9 +668,9 @@ const Admin = () => {
           </h1>
         </div>
 
-        {/* ═══════════════════════════════════════ */}
-        {/* Overview */}
-        {/* ═══════════════════════════════════════ */}
+        {/* =========================
+            Overview
+        ========================= */}
 
         {activeTab === 'overview' && (
           <>
@@ -538,7 +694,8 @@ const Admin = () => {
                     textAlign: 'center',
                     boxShadow:
                       '0 4px 15px rgba(0,0,0,0.08)',
-                    borderTop: `4px solid ${stat.color}`,
+                    borderTop:
+                      `4px solid ${stat.color}`,
                   }}
                 >
                   <i
@@ -596,114 +753,493 @@ const Admin = () => {
                   color: '#888',
                 }}
               >
-                Use the sidebar to manage profiles,
-                reviews, sessions and send notifications
-                to your users.
+                Use the sidebar to manage courses,
+                profiles, reviews, sessions and
+                notifications.
               </p>
             </div>
           </>
         )}
 
-        {/* ═══════════════════════════════════════ */}
-        {/* Courses */}
-        {/* ═══════════════════════════════════════ */}
+        {/* =========================
+            Courses Management
+        ========================= */}
 
         {activeTab === 'courses' && (
-          <div
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              padding: '30px',
-              boxShadow:
-                '0 4px 15px rgba(0,0,0,0.08)',
-              overflowX: 'auto',
-            }}
-          >
-            <table
+          <>
+            {/* Course Form */}
+
+            <div
               style={{
-                width: '100%',
-                borderCollapse: 'collapse',
+                background: 'white',
+                borderRadius: '12px',
+                padding: '30px',
+                marginBottom: '30px',
+                boxShadow:
+                  '0 4px 15px rgba(0,0,0,0.08)',
               }}
             >
-              <thead>
-                <tr
+              <h2
+                style={{
+                  color: '#003366',
+                  marginTop: 0,
+                }}
+              >
+                <i className="fas fa-book"></i>{' '}
+
+                {editingCourseId
+                  ? 'Edit Course'
+                  : 'Add New Course'}
+              </h2>
+
+              <form onSubmit={saveCourse}>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                      'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '15px',
+                  }}
+                >
+
+                  <input
+                    type="text"
+                    placeholder="Course Title"
+                    value={courseTitle}
+                    onChange={(e) =>
+                      setCourseTitle(e.target.value)
+                    }
+                    style={{
+                      padding: '14px',
+                      border:
+                        '1px solid #ddd',
+                      borderRadius: '8px',
+                    }}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Category"
+                    value={courseCategory}
+                    onChange={(e) =>
+                      setCourseCategory(
+                        e.target.value
+                      )
+                    }
+                    style={{
+                      padding: '14px',
+                      border:
+                        '1px solid #ddd',
+                      borderRadius: '8px',
+                    }}
+                  />
+
+                  <input
+                    type="number"
+                    placeholder="Students"
+                    value={courseStudents}
+                    onChange={(e) =>
+                      setCourseStudents(
+                        e.target.value
+                      )
+                    }
+                    min="0"
+                    style={{
+                      padding: '14px',
+                      border:
+                        '1px solid #ddd',
+                      borderRadius: '8px',
+                    }}
+                  />
+
+                  <input
+                    type="number"
+                    placeholder="Rating"
+                    value={courseRating}
+                    onChange={(e) =>
+                      setCourseRating(
+                        e.target.value
+                      )
+                    }
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    style={{
+                      padding: '14px',
+                      border:
+                        '1px solid #ddd',
+                      borderRadius: '8px',
+                    }}
+                  />
+
+                </div>
+
+                {courseStatus && (
+                  <p
+                    style={{
+                      color:
+                        courseStatus.includes(
+                          'successfully'
+                        )
+                          ? '#10b981'
+                          : '#ef4444',
+                      marginTop: '15px',
+                    }}
+                  >
+                    {courseStatus}
+                  </p>
+                )}
+
+                <div
+                  style={{
+                    marginTop: '20px',
+                    display: 'flex',
+                    gap: '10px',
+                  }}
+                >
+
+                  <button
+                    type="submit"
+                    style={{
+                      background: '#003366',
+                      color: 'white',
+                      border: 'none',
+                      padding:
+                        '12px 25px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                    }}
+                  >
+                    <i
+                      className={
+                        editingCourseId
+                          ? 'fas fa-save'
+                          : 'fas fa-plus'
+                      }
+                    ></i>{' '}
+
+                    {editingCourseId
+                      ? 'Update Course'
+                      : 'Add Course'}
+                  </button>
+
+                  {editingCourseId && (
+                    <button
+                      type="button"
+                      onClick={
+                        resetCourseForm
+                      }
+                      style={{
+                        background: '#999',
+                        color: 'white',
+                        border: 'none',
+                        padding:
+                          '12px 25px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+
+                </div>
+
+              </form>
+            </div>
+
+            {/* Courses Table */}
+
+            <div
+              style={{
+                background: 'white',
+                borderRadius: '12px',
+                padding: '30px',
+                boxShadow:
+                  '0 4px 15px rgba(0,0,0,0.08)',
+                overflowX: 'auto',
+              }}
+            >
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent:
+                    'space-between',
+                  alignItems: 'center',
+                  marginBottom: '20px',
+                }}
+              >
+                <h2
+                  style={{
+                    color: '#003366',
+                    margin: 0,
+                  }}
+                >
+                  All Courses
+                </h2>
+
+                <button
+                  onClick={fetchCourses}
                   style={{
                     background: '#003366',
                     color: 'white',
+                    border: 'none',
+                    padding:
+                      '10px 18px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
                   }}
                 >
-                  <th style={{ padding: '15px', textAlign: 'left' }}>
-                    Course
-                  </th>
+                  <i className="fas fa-sync"></i>{' '}
+                  Refresh
+                </button>
+              </div>
 
-                  <th style={{ padding: '15px', textAlign: 'left' }}>
-                    Category
-                  </th>
-
-                  <th style={{ padding: '15px', textAlign: 'left' }}>
-                    Students
-                  </th>
-
-                  <th style={{ padding: '15px', textAlign: 'left' }}>
-                    Rating
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {courses.map((course, i) => (
-                  <tr
-                    key={i}
-                    style={{
-                      borderBottom:
-                        '1px solid #f0f0f0',
-                    }}
-                  >
-                    <td
+              {coursesLoading ? (
+                <p
+                  style={{
+                    textAlign: 'center',
+                    color: '#888',
+                  }}
+                >
+                  <i className="fas fa-spinner fa-spin"></i>{' '}
+                  Loading courses...
+                </p>
+              ) : courses.length === 0 ? (
+                <p
+                  style={{
+                    textAlign: 'center',
+                    color: '#888',
+                    padding: '40px',
+                  }}
+                >
+                  No courses found.
+                </p>
+              ) : (
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse:
+                      'collapse',
+                  }}
+                >
+                  <thead>
+                    <tr
                       style={{
-                        padding: '15px',
-                        fontWeight: '600',
-                        color: '#003366',
+                        background:
+                          '#003366',
+                        color: 'white',
                       }}
                     >
-                      {course.title}
-                    </td>
-
-                    <td style={{ padding: '15px' }}>
-                      <span
+                      <th
                         style={{
-                          background: '#f0f0f0',
-                          padding: '4px 12px',
-                          borderRadius: '20px',
+                          padding: '15px',
+                          textAlign:
+                            'left',
                         }}
                       >
-                        {course.category}
-                      </span>
-                    </td>
+                        ID
+                      </th>
 
-                    <td style={{ padding: '15px' }}>
-                      {course.students}
-                    </td>
+                      <th
+                        style={{
+                          padding: '15px',
+                          textAlign:
+                            'left',
+                        }}
+                      >
+                        Course
+                      </th>
 
-                    <td
-                      style={{
-                        padding: '15px',
-                        color: '#f0a500',
-                        fontWeight: '600',
-                      }}
-                    >
-                      ⭐ {course.rating}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <th
+                        style={{
+                          padding: '15px',
+                          textAlign:
+                            'left',
+                        }}
+                      >
+                        Category
+                      </th>
+
+                      <th
+                        style={{
+                          padding: '15px',
+                          textAlign:
+                            'left',
+                        }}
+                      >
+                        Students
+                      </th>
+
+                      <th
+                        style={{
+                          padding: '15px',
+                          textAlign:
+                            'left',
+                        }}
+                      >
+                        Rating
+                      </th>
+
+                      <th
+                        style={{
+                          padding: '15px',
+                          textAlign:
+                            'left',
+                        }}
+                      >
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+
+                    {courses.map(
+                      (course) => (
+                        <tr
+                          key={
+                            course.id
+                          }
+                          style={{
+                            borderBottom:
+                              '1px solid #f0f0f0',
+                          }}
+                        >
+
+                          <td
+                            style={{
+                              padding:
+                                '15px',
+                            }}
+                          >
+                            {course.id}
+                          </td>
+
+                          <td
+                            style={{
+                              padding:
+                                '15px',
+                              fontWeight:
+                                '600',
+                              color:
+                                '#003366',
+                            }}
+                          >
+                            {course.title}
+                          </td>
+
+                          <td
+                            style={{
+                              padding:
+                                '15px',
+                            }}
+                          >
+                            {course.category}
+                          </td>
+
+                          <td
+                            style={{
+                              padding:
+                                '15px',
+                            }}
+                          >
+                            {course.students}
+                          </td>
+
+                          <td
+                            style={{
+                              padding:
+                                '15px',
+                              color:
+                                '#f0a500',
+                              fontWeight:
+                                '600',
+                            }}
+                          >
+                            ⭐{' '}
+                            {course.rating}
+                          </td>
+
+                          <td
+                            style={{
+                              padding:
+                                '15px',
+                            }}
+                          >
+
+                            <button
+                              onClick={() =>
+                                editCourse(
+                                  course
+                                )
+                              }
+                              style={{
+                                background:
+                                  '#003366',
+                                color:
+                                  'white',
+                                border:
+                                  'none',
+                                padding:
+                                  '8px 12px',
+                                borderRadius:
+                                  '6px',
+                                cursor:
+                                  'pointer',
+                                marginRight:
+                                  '8px',
+                              }}
+                            >
+                              <i className="fas fa-edit"></i>{' '}
+                              Edit
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                deleteCourse(
+                                  course.id
+                                )
+                              }
+                              style={{
+                                background:
+                                  '#ef4444',
+                                color:
+                                  'white',
+                                border:
+                                  'none',
+                                padding:
+                                  '8px 12px',
+                                borderRadius:
+                                  '6px',
+                                cursor:
+                                  'pointer',
+                              }}
+                            >
+                              <i className="fas fa-trash"></i>{' '}
+                              Delete
+                            </button>
+
+                          </td>
+
+                        </tr>
+                      )
+                    )}
+
+                  </tbody>
+                </table>
+              )}
+
+            </div>
+          </>
         )}
 
-        {/* ═══════════════════════════════════════ */}
-        {/* Users */}
-        {/* ═══════════════════════════════════════ */}
+        {/* =========================
+            Users
+        ========================= */}
 
         {activeTab === 'users' && (
           <div
@@ -738,9 +1274,9 @@ const Admin = () => {
           </div>
         )}
 
-        {/* ═══════════════════════════════════════ */}
-        {/* Notifications */}
-        {/* ═══════════════════════════════════════ */}
+        {/* =========================
+            Notifications
+        ========================= */}
 
         {activeTab === 'notifications' && (
           <div
@@ -756,116 +1292,71 @@ const Admin = () => {
             <h2
               style={{
                 color: '#003366',
-                marginBottom: '10px',
               }}
             >
-              <i
-                className="fas fa-bell"
-                style={{
-                  marginRight: '10px',
-                }}
-              ></i>
-
+              <i className="fas fa-bell"></i>{' '}
               Send Notification
             </h2>
 
-            <p
-              style={{
-                color: '#888',
-                marginBottom: '25px',
-              }}
+            <form
+              onSubmit={
+                sendNotification
+              }
             >
-              Send a notification to all users of
-              your website.
-            </p>
 
-            <form onSubmit={sendNotification}>
-
-              <div
+              <input
+                type="text"
+                value={
+                  notificationTitle
+                }
+                onChange={(e) =>
+                  setNotificationTitle(
+                    e.target.value
+                  )
+                }
+                placeholder="Notification Title"
                 style={{
-                  marginBottom: '20px',
+                  width: '100%',
+                  padding: '14px',
+                  marginBottom:
+                    '15px',
+                  border:
+                    '1px solid #ddd',
+                  borderRadius:
+                    '8px',
+                  boxSizing:
+                    'border-box',
                 }}
-              >
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontWeight: '600',
-                    color: '#003366',
-                  }}
-                >
-                  Notification Title
-                </label>
+              />
 
-                <input
-                  type="text"
-                  value={notificationTitle}
-                  onChange={(e) =>
-                    setNotificationTitle(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Enter notification title"
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <div
+              <textarea
+                value={
+                  notificationMessage
+                }
+                onChange={(e) =>
+                  setNotificationMessage(
+                    e.target.value
+                  )
+                }
+                placeholder="Notification Message"
+                rows="5"
                 style={{
-                  marginBottom: '20px',
+                  width: '100%',
+                  padding: '14px',
+                  marginBottom:
+                    '15px',
+                  border:
+                    '1px solid #ddd',
+                  borderRadius:
+                    '8px',
+                  boxSizing:
+                    'border-box',
                 }}
-              >
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontWeight: '600',
-                    color: '#003366',
-                  }}
-                >
-                  Notification Message
-                </label>
-
-                <textarea
-                  value={notificationMessage}
-                  onChange={(e) =>
-                    setNotificationMessage(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Write your notification message..."
-                  rows="5"
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    resize: 'vertical',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
+              />
 
               {notificationStatus && (
-                <div
+                <p
                   style={{
-                    padding: '12px',
-                    marginBottom: '20px',
-                    borderRadius: '8px',
-                    background:
-                      notificationStatus.includes(
-                        'successfully'
-                      )
-                        ? '#ecfdf5'
-                        : '#fef2f2',
                     color:
                       notificationStatus.includes(
                         'successfully'
@@ -874,26 +1365,15 @@ const Admin = () => {
                         : '#ef4444',
                   }}
                 >
-                  <i
-                    className={
-                      notificationStatus.includes(
-                        'successfully'
-                      )
-                        ? 'fas fa-check-circle'
-                        : 'fas fa-exclamation-circle'
-                    }
-                    style={{
-                      marginRight: '8px',
-                    }}
-                  ></i>
-
                   {notificationStatus}
-                </div>
+                </p>
               )}
 
               <button
                 type="submit"
-                disabled={sendingNotification}
+                disabled={
+                  sendingNotification
+                }
                 style={{
                   background:
                     sendingNotification
@@ -901,14 +1381,12 @@ const Admin = () => {
                       : '#003366',
                   color: 'white',
                   border: 'none',
-                  padding: '14px 25px',
-                  borderRadius: '8px',
+                  padding:
+                    '14px 25px',
+                  borderRadius:
+                    '8px',
                   cursor:
-                    sendingNotification
-                      ? 'not-allowed'
-                      : 'pointer',
-                  fontSize: '1rem',
-                  fontWeight: '600',
+                    'pointer',
                 }}
               >
                 <i
@@ -917,22 +1395,20 @@ const Admin = () => {
                       ? 'fas fa-spinner fa-spin'
                       : 'fas fa-paper-plane'
                   }
-                  style={{
-                    marginRight: '8px',
-                  }}
-                ></i>
+                ></i>{' '}
 
                 {sendingNotification
                   ? 'Sending...'
                   : 'Send Notification'}
               </button>
+
             </form>
           </div>
         )}
 
-        {/* ═══════════════════════════════════════ */}
-        {/* Profiles */}
-        {/* ═══════════════════════════════════════ */}
+        {/* =========================
+            Profiles
+        ========================= */}
 
         {activeTab === 'profiles' && (
           <div
@@ -945,128 +1421,140 @@ const Admin = () => {
               overflowX: 'auto',
             }}
           >
-            <div
+
+            <h2
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '20px',
+                color: '#003366',
               }}
             >
-              <h2
-                style={{
-                  color: '#003366',
-                  margin: 0,
-                }}
-              >
-                <i className="fas fa-user-circle"></i>{' '}
-                Profiles
-              </h2>
-
-              <button
-                onClick={fetchProfiles}
-                style={{
-                  background: '#003366',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                }}
-              >
-                <i className="fas fa-sync"></i>{' '}
-                Refresh
-              </button>
-            </div>
+              <i className="fas fa-user-circle"></i>{' '}
+              Profiles
+            </h2>
 
             {profilesLoading ? (
-              <p style={{ textAlign: 'center', color: '#888' }}>
-                <i className="fas fa-spinner fa-spin"></i>{' '}
-                Loading profiles...
-              </p>
-            ) : profiles.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#888' }}>
-                No profiles found.
-              </p>
+              <p>Loading profiles...</p>
             ) : (
               <table
                 style={{
                   width: '100%',
-                  borderCollapse: 'collapse',
+                  borderCollapse:
+                    'collapse',
                 }}
               >
                 <thead>
                   <tr
                     style={{
-                      background: '#003366',
-                      color: 'white',
+                      background:
+                        '#003366',
+                      color:
+                        'white',
                     }}
                   >
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       ID
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Username
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Type
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Bio
                     </th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {profiles.map((profile) => (
-                    <tr
-                      key={profile.id}
-                      style={{
-                        borderBottom:
-                          '1px solid #f0f0f0',
-                      }}
-                    >
-                      <td
-                        style={{
-                          padding: '15px',
-                          fontSize: '0.8rem',
-                          color: '#777',
-                        }}
+                  {profiles.map(
+                    (profile) => (
+                      <tr
+                        key={
+                          profile.id
+                        }
                       >
-                        {profile.id}
-                      </td>
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            profile.id
+                          }
+                        </td>
 
-                      <td
-                        style={{
-                          padding: '15px',
-                          fontWeight: '600',
-                          color: '#003366',
-                        }}
-                      >
-                        {profile.username || '-'}
-                      </td>
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            profile.username ||
+                            '-'
+                          }
+                        </td>
 
-                      <td style={{ padding: '15px' }}>
-                        {profile.type || '-'}
-                      </td>
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            profile.type ||
+                            '-'
+                          }
+                        </td>
 
-                      <td style={{ padding: '15px' }}>
-                        {profile.bio || '-'}
-                      </td>
-                    </tr>
-                  ))}
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            profile.bio ||
+                            '-'
+                          }
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             )}
+
           </div>
         )}
 
-        {/* ═══════════════════════════════════════ */}
-        {/* Reviews */}
-        {/* ═══════════════════════════════════════ */}
+        {/* =========================
+            Reviews
+        ========================= */}
 
         {activeTab === 'reviews' && (
           <div
@@ -1079,140 +1567,159 @@ const Admin = () => {
               overflowX: 'auto',
             }}
           >
-            <div
+
+            <h2
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '20px',
+                color: '#003366',
               }}
             >
-              <h2
-                style={{
-                  color: '#003366',
-                  margin: 0,
-                }}
-              >
-                <i className="fas fa-star"></i>{' '}
-                Reviews
-              </h2>
-
-              <button
-                onClick={fetchReviews}
-                style={{
-                  background: '#003366',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                }}
-              >
-                <i className="fas fa-sync"></i>{' '}
-                Refresh
-              </button>
-            </div>
+              <i className="fas fa-star"></i>{' '}
+              Reviews
+            </h2>
 
             {reviewsLoading ? (
-              <p
-                style={{
-                  textAlign: 'center',
-                  color: '#888',
-                }}
-              >
-                <i className="fas fa-spinner fa-spin"></i>{' '}
-                Loading reviews...
-              </p>
-            ) : reviews.length === 0 ? (
-              <p
-                style={{
-                  textAlign: 'center',
-                  color: '#888',
-                }}
-              >
-                No reviews found.
-              </p>
+              <p>Loading reviews...</p>
             ) : (
               <table
                 style={{
                   width: '100%',
-                  borderCollapse: 'collapse',
+                  borderCollapse:
+                    'collapse',
                 }}
               >
                 <thead>
                   <tr
                     style={{
-                      background: '#003366',
-                      color: 'white',
+                      background:
+                        '#003366',
+                      color:
+                        'white',
                     }}
                   >
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       ID
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Course ID
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       User ID
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Rating
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Comment
                     </th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {reviews.map((review) => (
-                    <tr
-                      key={review.id}
-                      style={{
-                        borderBottom:
-                          '1px solid #f0f0f0',
-                      }}
-                    >
-                      <td style={{ padding: '15px' }}>
-                        {review.id}
-                      </td>
-
-                      <td style={{ padding: '15px' }}>
-                        {review.course_id}
-                      </td>
-
-                      <td style={{ padding: '15px' }}>
-                        {review.user_id}
-                      </td>
-
-                      <td
-                        style={{
-                          padding: '15px',
-                          color: '#f0a500',
-                          fontWeight: '600',
-                        }}
+                  {reviews.map(
+                    (review) => (
+                      <tr
+                        key={
+                          review.id
+                        }
                       >
-                        ⭐ {review.rating}
-                      </td>
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            review.id
+                          }
+                        </td>
 
-                      <td style={{ padding: '15px' }}>
-                        {review.comment || '-'}
-                      </td>
-                    </tr>
-                  ))}
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            review.course_id
+                          }
+                        </td>
+
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            review.user_id
+                          }
+                        </td>
+
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          ⭐{' '}
+                          {
+                            review.rating
+                          }
+                        </td>
+
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            review.comment ||
+                            '-'
+                          }
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             )}
+
           </div>
         )}
 
-        {/* ═══════════════════════════════════════ */}
-        {/* Sessions */}
-        {/* ═══════════════════════════════════════ */}
+        {/* =========================
+            Sessions
+        ========================= */}
 
         {activeTab === 'sessions' && (
           <div
@@ -1225,134 +1732,155 @@ const Admin = () => {
               overflowX: 'auto',
             }}
           >
-            <div
+
+            <h2
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '20px',
+                color: '#003366',
               }}
             >
-              <h2
-                style={{
-                  color: '#003366',
-                  margin: 0,
-                }}
-              >
-                <i className="fas fa-video"></i>{' '}
-                Sessions
-              </h2>
-
-              <button
-                onClick={fetchSessions}
-                style={{
-                  background: '#003366',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                }}
-              >
-                <i className="fas fa-sync"></i>{' '}
-                Refresh
-              </button>
-            </div>
+              <i className="fas fa-video"></i>{' '}
+              Sessions
+            </h2>
 
             {sessionsLoading ? (
-              <p
-                style={{
-                  textAlign: 'center',
-                  color: '#888',
-                }}
-              >
-                <i className="fas fa-spinner fa-spin"></i>{' '}
-                Loading sessions...
-              </p>
-            ) : sessions.length === 0 ? (
-              <p
-                style={{
-                  textAlign: 'center',
-                  color: '#888',
-                }}
-              >
-                No sessions found.
-              </p>
+              <p>Loading sessions...</p>
             ) : (
               <table
                 style={{
                   width: '100%',
-                  borderCollapse: 'collapse',
+                  borderCollapse:
+                    'collapse',
                 }}
               >
                 <thead>
                   <tr
                     style={{
-                      background: '#003366',
-                      color: 'white',
+                      background:
+                        '#003366',
+                      color:
+                        'white',
                     }}
                   >
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       ID
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Title
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Course
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Date
                     </th>
 
-                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                    <th
+                      style={{
+                        padding:
+                          '15px',
+                      }}
+                    >
                       Time
                     </th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {sessions.map((session) => (
-                    <tr
-                      key={session.id}
-                      style={{
-                        borderBottom:
-                          '1px solid #f0f0f0',
-                      }}
-                    >
-                      <td style={{ padding: '15px' }}>
-                        {session.id}
-                      </td>
-
-                      <td
-                        style={{
-                          padding: '15px',
-                          fontWeight: '600',
-                          color: '#003366',
-                        }}
+                  {sessions.map(
+                    (session) => (
+                      <tr
+                        key={
+                          session.id
+                        }
                       >
-                        {session.title || '-'}
-                      </td>
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            session.id
+                          }
+                        </td>
 
-                      <td style={{ padding: '15px' }}>
-                        {session.course || '-'}
-                      </td>
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            session.title ||
+                            '-'
+                          }
+                        </td>
 
-                      <td style={{ padding: '15px' }}>
-                        {session.data || '-'}
-                      </td>
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            session.course ||
+                            '-'
+                          }
+                        </td>
 
-                      <td style={{ padding: '15px' }}>
-                        {session.time || '-'}
-                      </td>
-                    </tr>
-                  ))}
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            session.data ||
+                            '-'
+                          }
+                        </td>
+
+                        <td
+                          style={{
+                            padding:
+                              '15px',
+                          }}
+                        >
+                          {
+                            session.time ||
+                            '-'
+                          }
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             )}
+
           </div>
         )}
 
