@@ -3,92 +3,62 @@ import { supabase } from '../supabase';
 import { useLang } from '../LanguageContext';
 import '../App.css';
 
-const StarRating = ({ rating = 0, onRate }) => {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '5px',
-        animation: 'fadeIn 0.5s ease both',
-      }}
-    >
-      {[1, 2, 3, 4, 5].map((star) => (
-        <i
-          key={star}
-          className={star <= Math.round(rating) ? 'fas fa-star' : 'far fa-star'}
-          style={{
-            color: '#f0a500',
-            cursor: onRate ? 'pointer' : 'default',
-            fontSize: '1.2rem',
-            transition: 'all 0.2s ease',
-          }}
-          onClick={() => onRate && onRate(star)}
-          onMouseEnter={(e) => {
-            if (onRate) {
-              e.currentTarget.style.transform = 'scale(1.3)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (onRate) {
-              e.currentTarget.style.transform = 'scale(1)';
-            }
-          }}
-        />
-      ))}
-    </div>
-  );
-};
-
-const getCourseIcon = (category) => {
-  const icons = {
-    Frontend: 'fas fa-code',
-    Backend: 'fas fa-server',
-    Design: 'fas fa-paint-brush',
-    Programming: 'fas fa-laptop-code',
-    Database: 'fas fa-database',
-    Marketing: 'fas fa-bullhorn',
-    Business: 'fas fa-briefcase',
-  };
-
-  return icons[category] || 'fas fa-book-open';
-};
-
-const getCourseColor = (category) => {
-  const colors = {
-    Frontend: '#61dafb',
-    Backend: '#10b981',
-    Design: '#ff6b6b',
-    Programming: '#f0a500',
-    Database: '#6366f1',
-    Marketing: '#ec4899',
-    Business: '#8b5cf6',
-  };
-
-  return colors[category] || '#003366';
-};
+const StarRating = ({ rating, onRate }) => (
+  <div
+    style={{
+      display: 'flex',
+      gap: '5px',
+      alignItems: 'center',
+    }}
+  >
+    {[1, 2, 3, 4, 5].map((star) => (
+      <i
+        key={star}
+        className={star <= rating ? 'fas fa-star' : 'far fa-star'}
+        style={{
+          color: '#f0a500',
+          cursor: onRate ? 'pointer' : 'default',
+          fontSize: '1.2rem',
+          transition: 'all 0.2s ease',
+        }}
+        onClick={() => onRate && onRate(star)}
+        onMouseEnter={(e) => {
+          if (onRate) {
+            e.currentTarget.style.transform = 'scale(1.3)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (onRate) {
+            e.currentTarget.style.transform = 'scale(1)';
+          }
+        }}
+      />
+    ))}
+  </div>
+);
 
 const Courses = () => {
   const { darkMode } = useLang();
 
   const dm = {
     bg: darkMode ? '#0f1117' : '#f5f7fa',
-    card: darkMode ? '#1e2130' : 'white',
-    cardBorder: darkMode ? '#2e3250' : '#f0f0f0',
+    card: darkMode ? '#1e2130' : '#ffffff',
+    cardBorder: darkMode ? '#2e3250' : '#eeeeee',
     heading: darkMode ? '#a0b4ff' : '#003366',
     text: darkMode ? '#c8d0e0' : '#555',
     subtext: darkMode ? '#7a8499' : '#888',
-    input: darkMode ? '#1e2130' : 'white',
-    inputBorder: darkMode ? '#3a4060' : '#ddd',
+    input: darkMode ? '#1e2130' : '#ffffff',
+    inputBorder: darkMode ? '#3a4060' : '#dddddd',
     inputColor: darkMode ? '#e0e6f0' : '#333',
-    catActive: darkMode ? '#a0b4ff' : 'white',
+    catActive: darkMode ? '#ffffff' : '#ffffff',
     catActiveBg: darkMode ? '#2a3580' : '#003366',
     catBorder: darkMode ? '#a0b4ff' : '#003366',
     catInactive: darkMode ? '#a0b4ff' : '#003366',
-    reviewBg: darkMode ? '#161a28' : 'white',
+    reviewBg: darkMode ? '#161a28' : '#ffffff',
     successBg: darkMode ? '#0d2318' : '#f0fff4',
     shadow: darkMode
-      ? '0 4px 20px rgba(0,0,0,0.4)'
-      : '0 4px 15px rgba(0,0,0,0.08)',
+      ? '0 8px 30px rgba(0,0,0,0.4)'
+      : '0 8px 25px rgba(0,0,0,0.08)',
     tagBg: darkMode ? '#2a3050' : '#f0f0f0',
     tagColor: darkMode ? '#a0b4ff' : '#555',
     btnBack: darkMode ? '#2a3580' : '#003366',
@@ -106,28 +76,53 @@ const Courses = () => {
 
   const [user, setUser] = useState(null);
 
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const [pageVisible, setPageVisible] = useState(false);
   const [detailsVisible, setDetailsVisible] = useState(false);
 
-  // ==========================================
-  // LOAD COURSES FROM SUPABASE
-  // ==========================================
+  // ============================================================
+  // GET CURRENT USER
+  // ============================================================
 
   useEffect(() => {
-    setPageVisible(true);
-    fetchCourses();
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
-    });
+    };
+
+    getUser();
+  }, []);
+
+  // ============================================================
+  // PAGE ANIMATION
+  // ============================================================
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageVisible(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ============================================================
+  // FETCH COURSES FROM SUPABASE
+  // ============================================================
+
+  useEffect(() => {
+    fetchCourses();
   }, []);
 
   const fetchCourses = async () => {
-    setLoading(true);
+    setLoadingCourses(true);
 
     const { data, error } = await supabase
       .from('courses')
@@ -135,98 +130,73 @@ const Courses = () => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching courses:', error);
+      console.error('Courses error:', error);
     } else {
       setCourses(data || []);
     }
 
-    setLoading(false);
+    setLoadingCourses(false);
   };
 
-  // ==========================================
-  // OPEN COURSE DETAILS
-  // ==========================================
-
-  useEffect(() => {
-    if (selected) {
-      setDetailsVisible(false);
-
-      const timer = setTimeout(() => {
-        setDetailsVisible(true);
-      }, 100);
-
-      fetchReviews();
-
-      return () => clearTimeout(timer);
-    }
-  }, [selected]);
-
-  // ==========================================
+  // ============================================================
   // FETCH REVIEWS
-  // ==========================================
+  // ============================================================
 
-  const fetchReviews = async () => {
-    if (!selected) return;
+  const fetchReviews = async (courseId) => {
+    if (!courseId) return;
 
-    setReviewsLoading(true);
+    setLoadingReviews(true);
 
     const { data, error } = await supabase
       .from('reviews')
       .select('*')
-      .eq('course_id', selected.id)
+      .eq('course_id', courseId)
       .order('id', { ascending: false });
 
     if (error) {
-      console.error('Error fetching reviews:', error);
+      console.error('Reviews error:', error);
+      setReviews([]);
     } else {
       setReviews(data || []);
-    }
 
-    setReviewsLoading(false);
-  };
+      // Find user's existing review
+      if (user) {
+        const existingReview = (data || []).find(
+          (review) => review.user_id === user.id
+        );
 
-  // ==========================================
-  // SUBMIT REVIEW
-  // ==========================================
-
-  const handleSubmitReview = async () => {
-    if (!myRating) return;
-
-    if (!user) {
-      alert('Please login first to submit a review.');
-      return;
-    }
-
-    setReviewsLoading(true);
-
-    const { error } = await supabase
-      .from('reviews')
-      .upsert(
-        {
-          course_id: selected.id,
-          user_id: user.id,
-          rating: myRating,
-          comment: comment,
-        },
-        {
-          onConflict: 'user_id,course_id',
+        if (existingReview) {
+          setMyRating(existingReview.rating);
+          setComment(existingReview.comment || '');
         }
-      );
-
-    if (error) {
-      console.error('Error submitting review:', error);
-      alert(error.message);
-    } else {
-      setSubmitted(true);
-      await fetchReviews();
+      }
     }
 
-    setReviewsLoading(false);
+    setLoadingReviews(false);
   };
 
-  // ==========================================
-  // BACK TO COURSES
-  // ==========================================
+  // ============================================================
+  // SELECT COURSE
+  // ============================================================
+
+  const handleSelectCourse = async (course) => {
+    setSelected(course);
+    setDetailsVisible(false);
+    setSubmitted(false);
+    setMyRating(0);
+    setComment('');
+    setReviews([]);
+
+    setTimeout(() => {
+      setDetailsVisible(true);
+    }, 100);
+
+    await fetchReviews(course.id);
+  };
+
+  // ============================================================
+  // BACK
+  // ============================================================
 
   const handleBack = () => {
     setDetailsVisible(false);
@@ -237,36 +207,96 @@ const Courses = () => {
       setSubmitted(false);
       setMyRating(0);
       setComment('');
-    }, 250);
+    }, 300);
   };
 
-  // ==========================================
-  // CALCULATE REVIEWS RATING
-  // ==========================================
+  // ============================================================
+  // SUBMIT REVIEW
+  // ============================================================
 
-  const avgReviewRating = reviews.length
+  const handleSubmitReview = async () => {
+    if (!user) {
+      alert('Please login first to submit a review.');
+      return;
+    }
+
+    if (!selected) {
+      return;
+    }
+
+    if (!myRating) {
+      alert('Please select a rating.');
+      return;
+    }
+
+    setSubmittingReview(true);
+
+    const { error } = await supabase
+      .from('reviews')
+      .upsert(
+        {
+          course_id: selected.id,
+          user_id: user.id,
+          rating: myRating,
+          comment: comment.trim(),
+        },
+        {
+          onConflict: 'user_id,course_id',
+        }
+      );
+
+    if (error) {
+      console.error('Review submit error:', error);
+
+      alert(
+        'Could not submit your review. Please make sure you are logged in.'
+      );
+
+      setSubmittingReview(false);
+      return;
+    }
+
+    setSubmitted(true);
+
+    await fetchReviews(selected.id);
+
+    setSubmittingReview(false);
+  };
+
+  // ============================================================
+  // CALCULATE RATING
+  // ============================================================
+
+  const avgRating = reviews.length
     ? (
-        reviews.reduce((total, review) => total + Number(review.rating), 0) /
-        reviews.length
+        reviews.reduce(
+          (total, review) => total + Number(review.rating || 0),
+          0
+        ) / reviews.length
       ).toFixed(1)
-    : null;
+    : selected?.rating || null;
 
-  // ==========================================
-  // CATEGORIES FROM DATABASE
-  // ==========================================
+  // ============================================================
+  // GET CATEGORIES
+  // ============================================================
 
   const categories = [
     'All',
-    ...new Set(courses.map((course) => course.category).filter(Boolean)),
+    ...new Set(
+      courses
+        .map((course) => course.category)
+        .filter(Boolean)
+    ),
   ];
 
-  // ==========================================
+  // ============================================================
   // FILTER COURSES
-  // ==========================================
+  // ============================================================
 
   const filteredCourses = courses.filter((course) => {
     const matchesCategory =
-      category === 'All' || course.category === category;
+      category === 'All' ||
+      course.category === category;
 
     const searchText = search.toLowerCase();
 
@@ -277,59 +307,9 @@ const Courses = () => {
     return matchesCategory && matchesSearch;
   });
 
-  // ==========================================
-  // LOADING
-  // ==========================================
-
-  if (loading) {
-    return (
-      <section
-        style={{
-          minHeight: '100vh',
-          background: dm.bg,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-        }}
-      >
-        <div
-          style={{
-            width: '60px',
-            height: '60px',
-            border: '5px solid rgba(0,51,102,0.15)',
-            borderTop: '5px solid #003366',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }}
-        />
-
-        <p
-          style={{
-            marginTop: '20px',
-            color: dm.heading,
-            fontWeight: '600',
-          }}
-        >
-          Loading courses...
-        </p>
-
-        <style>
-          {`
-            @keyframes spin {
-              to {
-                transform: rotate(360deg);
-              }
-            }
-          `}
-        </style>
-      </section>
-    );
-  }
-
-  // ==========================================
+  // ============================================================
   // COURSE DETAILS
-  // ==========================================
+  // ============================================================
 
   if (selected) {
     return (
@@ -340,14 +320,18 @@ const Courses = () => {
           margin: '0 auto',
           background: dm.bg,
           minHeight: '100vh',
+
           opacity: detailsVisible ? 1 : 0,
+
           transform: detailsVisible
             ? 'translateY(0)'
             : 'translateY(20px)',
-          transition: 'opacity 0.5s ease, transform 0.5s ease',
+
+          transition:
+            'opacity 0.5s ease, transform 0.5s ease',
         }}
       >
-        {/* BACK BUTTON */}
+        {/* Back Button */}
 
         <button
           onClick={handleBack}
@@ -359,57 +343,81 @@ const Courses = () => {
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
-            transition: 'all 0.3s ease',
+            transition:
+              'transform 0.3s ease, box-shadow 0.3s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateX(-5px)';
+            e.currentTarget.style.transform =
+              'translateX(-5px)';
+
             e.currentTarget.style.boxShadow =
               '0 6px 15px rgba(0,0,0,0.2)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateX(0)';
-            e.currentTarget.style.boxShadow = 'none';
+            e.currentTarget.style.transform =
+              'translateX(0)';
+
+            e.currentTarget.style.boxShadow =
+              'none';
           }}
         >
           <i className="fas fa-arrow-left"></i> Back
         </button>
 
-        {/* COURSE INFO */}
+        {/* Course Info */}
 
         <div
           style={{
             textAlign: 'center',
             marginBottom: '40px',
-            animation: 'slideUp 0.7s ease both',
+            animation:
+              'slideUp 0.7s ease both',
           }}
         >
-          <i
-            className={getCourseIcon(selected.category)}
+          <div
             style={{
-              fontSize: '4rem',
-              color: getCourseColor(selected.category),
-              marginBottom: '15px',
-              display: 'block',
-              animation: 'courseIconFloat 3s ease-in-out infinite',
+              width: '100px',
+              height: '100px',
+              margin: '0 auto 20px',
+              borderRadius: '25px',
+              background:
+                'linear-gradient(135deg, #003366, #005599)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow:
+                '0 15px 35px rgba(0,51,102,0.25)',
+              animation:
+                'courseIconFloat 3s ease-in-out infinite',
             }}
-          ></i>
+          >
+            <i
+              className="fas fa-book-open"
+              style={{
+                fontSize: '3rem',
+                color: '#f0a500',
+              }}
+            ></i>
+          </div>
 
           <span
             style={{
-              display: 'inline-block',
               background: dm.tagBg,
-              color: dm.tagColor,
               padding: '6px 15px',
               borderRadius: '20px',
+              color: dm.tagColor,
               fontSize: '0.85rem',
-              fontWeight: '600',
-              marginBottom: '15px',
             }}
           >
             {selected.category || 'General'}
           </span>
 
-          <h1 style={{ color: dm.heading }}>
+          <h1
+            style={{
+              color: dm.heading,
+              marginTop: '20px',
+            }}
+          >
             {selected.title}
           </h1>
 
@@ -417,7 +425,7 @@ const Courses = () => {
             style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: '25px',
+              gap: '20px',
               flexWrap: 'wrap',
               marginTop: '20px',
             }}
@@ -428,18 +436,16 @@ const Courses = () => {
             </div>
 
             <div style={{ color: dm.text }}>
-              <StarRating rating={selected.rating || 0} />
-            </div>
-
-            <div style={{ color: dm.text }}>
-              {selected.rating
-                ? `${Number(selected.rating).toFixed(1)} / 5`
-                : 'No rating'}
+              <i
+                className="fas fa-star"
+                style={{ color: '#f0a500' }}
+              ></i>{' '}
+              {avgRating || 'No rating'}
             </div>
           </div>
         </div>
 
-        {/* REVIEWS */}
+        {/* Reviews */}
 
         <div
           style={{
@@ -448,7 +454,8 @@ const Courses = () => {
             padding: '30px',
             boxShadow: dm.shadow,
             marginBottom: '30px',
-            animation: 'slideUp 0.7s 0.2s ease both',
+            animation:
+              'slideUp 0.7s 0.2s ease both',
           }}
         >
           <h2
@@ -460,85 +467,123 @@ const Courses = () => {
             <i className="fas fa-star"></i> Reviews
           </h2>
 
-          {reviewsLoading ? (
-            <p
+          {loadingReviews ? (
+            <div
               style={{
-                color: dm.subtext,
                 textAlign: 'center',
+                padding: '30px',
               }}
             >
-              <i className="fas fa-spinner fa-spin"></i>{' '}
-              Loading reviews...
-            </p>
+              <i
+                className="fas fa-spinner fa-spin"
+                style={{
+                  fontSize: '2rem',
+                  color: dm.heading,
+                }}
+              ></i>
+
+              <p style={{ color: dm.subtext }}>
+                Loading reviews...
+              </p>
+            </div>
           ) : reviews.length === 0 ? (
-            <p
+            <div
               style={{
-                color: dm.subtext,
                 textAlign: 'center',
+                padding: '30px',
               }}
             >
-              No reviews yet. Be the first!
-            </p>
+              <i
+                className="far fa-comment-dots"
+                style={{
+                  fontSize: '3rem',
+                  color: dm.subtext,
+                  marginBottom: '15px',
+                }}
+              ></i>
+
+              <p style={{ color: dm.subtext }}>
+                No reviews yet.
+              </p>
+
+              <p style={{ color: dm.subtext }}>
+                Be the first student to review this course!
+              </p>
+            </div>
           ) : (
-            <>
-              {avgReviewRating && (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    marginBottom: '25px',
-                  }}
-                >
-                  <h3 style={{ color: dm.heading }}>
-                    {avgReviewRating} / 5
-                  </h3>
+            reviews.map((review, index) => (
+              <div
+                key={review.id || index}
+                style={{
+                  padding: '20px 0',
+                  borderBottom:
+                    `1px solid ${dm.cardBorder}`,
 
-                  <StarRating
-                    rating={Math.round(avgReviewRating)}
-                  />
+                  animation:
+                    'fadeIn 0.5s ease both',
 
-                  <p style={{ color: dm.subtext }}>
-                    Based on {reviews.length} reviews
+                  animationDelay:
+                    `${index * 0.1}s`,
+                }}
+              >
+                <StarRating
+                  rating={review.rating}
+                />
+
+                {review.comment && (
+                  <p
+                    style={{
+                      color: dm.text,
+                      marginTop: '10px',
+                      lineHeight: '1.6',
+                    }}
+                  >
+                    {review.comment}
                   </p>
-                </div>
-              )}
-
-              {reviews.map((review, index) => (
-                <div
-                  key={review.id || index}
-                  style={{
-                    padding: '15px 0',
-                    borderBottom: `1px solid ${dm.cardBorder}`,
-                    animation: 'fadeIn 0.5s ease both',
-                  }}
-                >
-                  <StarRating rating={review.rating} />
-
-                  {review.comment && (
-                    <p
-                      style={{
-                        color: dm.text,
-                        marginTop: '8px',
-                      }}
-                    >
-                      {review.comment}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </>
+                )}
+              </div>
+            ))
           )}
         </div>
 
-        {/* ADD REVIEW */}
+        {/* Add Review */}
 
-        {!submitted ? (
+        {!user ? (
+          <div
+            style={{
+              background: dm.reviewBg,
+              borderRadius: '12px',
+              padding: '30px',
+              textAlign: 'center',
+              boxShadow: dm.shadow,
+            }}
+          >
+            <i
+              className="fas fa-lock"
+              style={{
+                fontSize: '2.5rem',
+                color: '#f0a500',
+                marginBottom: '15px',
+              }}
+            ></i>
+
+            <h3 style={{ color: dm.heading }}>
+              Login Required
+            </h3>
+
+            <p style={{ color: dm.subtext }}>
+              Please login to leave a review.
+            </p>
+          </div>
+        ) : !submitted ? (
           <div
             style={{
               background: dm.reviewBg,
               borderRadius: '12px',
               padding: '30px',
               boxShadow: dm.shadow,
-              animation: 'slideUp 0.7s 0.3s ease both',
+              animation:
+                'slideUp 0.7s 0.3s ease both',
             }}
           >
             <h2
@@ -547,110 +592,115 @@ const Courses = () => {
                 marginBottom: '20px',
               }}
             >
-              <i className="fas fa-pen"></i> Add Your Review
+              <i className="fas fa-pen"></i>{' '}
+              Add Your Review
             </h2>
 
-            {!user ? (
-              <p
-                style={{
-                  textAlign: 'center',
-                  color: dm.subtext,
-                  marginBottom: '20px',
-                }}
-              >
-                Please login to leave a review.
-              </p>
-            ) : (
-              <>
-                <div style={{ marginBottom: '15px' }}>
-                  <p
-                    style={{
-                      marginBottom: '8px',
-                      fontWeight: '600',
-                      color: dm.heading,
-                    }}
-                  >
-                    Your Rating:
-                  </p>
+            <p
+              style={{
+                color: dm.heading,
+                fontWeight: '600',
+              }}
+            >
+              Your Rating:
+            </p>
 
-                  <StarRating
-                    rating={myRating}
-                    onRate={setMyRating}
-                  />
-                </div>
+            <StarRating
+              rating={myRating}
+              onRate={setMyRating}
+            />
 
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Write your review..."
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: `1px solid ${dm.inputBorder}`,
-                    fontSize: '1rem',
-                    marginBottom: '15px',
-                    background: dm.input,
-                    color: dm.inputColor,
-                    resize: 'vertical',
-                    boxSizing: 'border-box',
-                  }}
-                />
+            <textarea
+              value={comment}
+              onChange={(e) =>
+                setComment(e.target.value)
+              }
+              placeholder="Write your review..."
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '8px',
+                border:
+                  `1px solid ${dm.inputBorder}`,
+                fontSize: '1rem',
+                marginTop: '15px',
+                marginBottom: '15px',
+                background: dm.input,
+                color: dm.inputColor,
+                resize: 'vertical',
+                boxSizing: 'border-box',
+              }}
+            />
 
-                <button
-                  onClick={handleSubmitReview}
-                  disabled={!myRating || reviewsLoading}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    background:
-                      myRating && !reviewsLoading
-                        ? dm.btnBack
-                        : '#ccc',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: '700',
-                    cursor:
-                      myRating && !reviewsLoading
-                        ? 'pointer'
-                        : 'not-allowed',
-                  }}
-                >
+            <button
+              onClick={handleSubmitReview}
+              disabled={
+                !myRating ||
+                submittingReview
+              }
+              style={{
+                width: '100%',
+                padding: '14px',
+                background:
+                  myRating && !submittingReview
+                    ? dm.btnBack
+                    : '#999',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '700',
+                cursor:
+                  myRating &&
+                  !submittingReview
+                    ? 'pointer'
+                    : 'not-allowed',
+              }}
+            >
+              {submittingReview ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>{' '}
+                  Submitting...
+                </>
+              ) : (
+                <>
                   <i className="fas fa-paper-plane"></i>{' '}
-                  {reviewsLoading
-                    ? 'Submitting...'
-                    : 'Submit Review'}
-                </button>
-              </>
-            )}
+                  Submit Review
+                </>
+              )}
+            </button>
           </div>
         ) : (
           <div
             style={{
               background: dm.successBg,
               borderRadius: '12px',
-              padding: '30px',
+              padding: '40px',
               textAlign: 'center',
-              animation: 'successPop 0.6s ease both',
+              animation:
+                'successPop 0.6s ease both',
             }}
           >
             <i
               className="fas fa-check-circle"
               style={{
-                fontSize: '3rem',
+                fontSize: '4rem',
                 color: '#10b981',
                 marginBottom: '15px',
-                display: 'block',
               }}
             ></i>
 
             <h3 style={{ color: dm.heading }}>
-              Review Submitted! Thank you 🎉
+              Review Submitted!
             </h3>
+
+            <p style={{ color: dm.text }}>
+              Thank you for sharing your experience 🎉
+            </p>
           </div>
         )}
+
+        {/* Animations */}
 
         <style>
           {`
@@ -707,44 +757,48 @@ const Courses = () => {
     );
   }
 
-  // ==========================================
+  // ============================================================
   // COURSES LIST
-  // ==========================================
+  // ============================================================
 
   return (
     <section
-      id="courses"
       style={{
         background: dm.bg,
         minHeight: '100vh',
         padding: '40px 20px',
+
         opacity: pageVisible ? 1 : 0,
+
         transform: pageVisible
           ? 'translateY(0)'
           : 'translateY(20px)',
-        transition: 'opacity 0.7s ease, transform 0.7s ease',
+
+        transition:
+          'opacity 0.7s ease, transform 0.7s ease',
       }}
     >
-      {/* TITLE */}
+      {/* Title */}
 
       <h1
         style={{
           color: dm.heading,
           textAlign: 'center',
-          animation: 'slideUp 0.7s ease both',
+          animation:
+            'slideUp 0.7s ease both',
         }}
       >
-        <i className="fas fa-book-open"></i> Our Courses
+        <i className="fas fa-book-open"></i>{' '}
+        Our Courses
       </h1>
 
-      {/* SEARCH */}
+      {/* Search */}
 
       <div
         style={{
           maxWidth: '700px',
-          margin: '0 auto 40px',
+          margin: '30px auto 40px',
           padding: '0 20px',
-          animation: 'slideUp 0.7s 0.15s ease both',
         }}
       >
         <div
@@ -759,7 +813,8 @@ const Courses = () => {
               position: 'absolute',
               left: '15px',
               top: '50%',
-              transform: 'translateY(-50%)',
+              transform:
+                'translateY(-50%)',
               color: dm.subtext,
             }}
           ></i>
@@ -768,12 +823,16 @@ const Courses = () => {
             type="text"
             placeholder="Search courses..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
             style={{
               width: '100%',
-              padding: '14px 14px 14px 45px',
+              padding:
+                '14px 14px 14px 45px',
               borderRadius: '10px',
-              border: `2px solid ${dm.inputBorder}`,
+              border:
+                `2px solid ${dm.inputBorder}`,
               fontSize: '1rem',
               outline: 'none',
               background: dm.input,
@@ -783,7 +842,7 @@ const Courses = () => {
           />
         </div>
 
-        {/* CATEGORIES */}
+        {/* Categories */}
 
         <div
           style={{
@@ -796,22 +855,30 @@ const Courses = () => {
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setCategory(cat)}
+              onClick={() =>
+                setCategory(cat)
+              }
               style={{
-                padding: '8px 20px',
+                padding:
+                  '8px 20px',
                 borderRadius: '20px',
-                border: `2px solid ${dm.catBorder}`,
+                border:
+                  `2px solid ${dm.catBorder}`,
+
                 background:
                   category === cat
                     ? dm.catActiveBg
                     : 'transparent',
+
                 color:
                   category === cat
                     ? dm.catActive
                     : dm.catInactive,
+
                 fontWeight: '600',
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
+                transition:
+                  'all 0.3s ease',
               }}
             >
               {cat}
@@ -820,173 +887,217 @@ const Courses = () => {
         </div>
       </div>
 
-      {/* NO COURSES */}
+      {/* Loading */}
 
-      {courses.length === 0 ? (
+      {loadingCourses ? (
         <div
           style={{
-            textAlign: 'center',
-            padding: '80px 20px',
-            color: dm.subtext,
-            animation: 'fadeIn 0.5s ease both',
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '25px',
+            maxWidth: '1100px',
+            margin: '0 auto',
           }}
         >
-          <i
-            className="fas fa-book-open"
-            style={{
-              fontSize: '4rem',
-              marginBottom: '20px',
-              display: 'block',
-              color: dm.heading,
-            }}
-          ></i>
-
-          <h2 style={{ color: dm.heading }}>
-            No Courses Available
-          </h2>
-
-          <p>
-            There are no courses available at the moment.
-            Check back soon!
-          </p>
+          {[1, 2, 3, 4, 5, 6].map(
+            (item) => (
+              <div
+                key={item}
+                style={{
+                  height: '280px',
+                  borderRadius: '15px',
+                  background:
+                    darkMode
+                      ? '#1e2130'
+                      : '#eeeeee',
+                  animation:
+                    'pulse 1.5s infinite',
+                }}
+              />
+            )
+          )}
         </div>
       ) : filteredCourses.length === 0 ? (
         <div
           style={{
             textAlign: 'center',
-            padding: '60px',
+            padding: '80px 20px',
             color: dm.subtext,
           }}
         >
           <i
             className="fas fa-search"
             style={{
-              fontSize: '3rem',
-              marginBottom: '15px',
+              fontSize: '4rem',
+              marginBottom: '20px',
               display: 'block',
             }}
           ></i>
 
-          <p>No courses found</p>
+          <h2>
+            No Courses Found
+          </h2>
+
+          <p>
+            Try another search or category.
+          </p>
         </div>
       ) : (
-        /* COURSES */
-
-        <div className="courses-container">
-          {filteredCourses.map((course, index) => (
-            <div
-              key={course.id}
-              className="course-card"
-              onClick={() => setSelected(course)}
-              style={{
-                background: dm.card,
-                boxShadow: dm.shadow,
-                animation:
-                  'courseCardEntrance 0.7s ease both',
-                animationDelay:
-                  `${index * 0.1}s`,
-                cursor: 'pointer',
-              }}
-            >
-              {/* ICON */}
-
+        <div
+          className="courses-container"
+        >
+          {filteredCourses.map(
+            (course, index) => (
               <div
-                className="card-icon"
+                key={course.id}
+                className="course-card"
+                onClick={() =>
+                  handleSelectCourse(course)
+                }
                 style={{
-                  color: getCourseColor(course.category),
+                  background: dm.card,
+                  boxShadow: dm.shadow,
+                  cursor: 'pointer',
+
+                  animation:
+                    'courseCardEntrance 0.7s ease both',
+
+                  animationDelay:
+                    `${index * 0.1}s`,
                 }}
               >
-                <i
-                  className={getCourseIcon(course.category)}
-                ></i>
-              </div>
+                {/* Icon */}
 
-              {/* CATEGORY */}
+                <div
+                  className="card-icon"
+                  style={{
+                    color: '#f0a500',
+                  }}
+                >
+                  <i className="fas fa-book-open"></i>
+                </div>
 
-              <span
-                style={{
-                  background: dm.tagBg,
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.8rem',
-                  color: dm.tagColor,
-                  marginBottom: '10px',
-                  display: 'inline-block',
-                }}
-              >
-                {course.category || 'General'}
-              </span>
+                {/* Category */}
 
-              {/* TITLE */}
-
-              <h3 style={{ color: dm.heading }}>
-                {course.title}
-              </h3>
-
-              {/* STUDENTS + RATING */}
-
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  margin: '15px 0',
-                  gap: '10px',
-                }}
-              >
                 <span
                   style={{
-                    color: dm.subtext,
-                    fontSize: '0.85rem',
+                    background: dm.tagBg,
+                    padding:
+                      '4px 12px',
+                    borderRadius:
+                      '20px',
+                    fontSize:
+                      '0.8rem',
+                    color:
+                      dm.tagColor,
+                    marginBottom:
+                      '10px',
+                    display:
+                      'inline-block',
+                  }}
+                >
+                  {course.category ||
+                    'General'}
+                </span>
+
+                {/* Title */}
+
+                <h3
+                  style={{
+                    color:
+                      dm.heading,
+                  }}
+                >
+                  {course.title}
+                </h3>
+
+                {/* Students */}
+
+                <p
+                  style={{
+                    color:
+                      dm.text,
                   }}
                 >
                   <i className="fas fa-users"></i>{' '}
-                  {course.students || 0}
-                </span>
+                  {course.students || 0}{' '}
+                  Students
+                </p>
 
-                <span
+                {/* Rating */}
+
+                <div
                   style={{
-                    color: dm.subtext,
-                    fontSize: '0.85rem',
+                    margin:
+                      '10px 0',
                   }}
                 >
-                  <i
-                    className="fas fa-star"
-                    style={{ color: '#f0a500' }}
-                  ></i>{' '}
-                  {course.rating
-                    ? Number(course.rating).toFixed(1)
-                    : 'New'}
-                </span>
+                  <StarRating
+                    rating={Math.round(
+                      Number(
+                        course.rating || 0
+                      )
+                    )}
+                  />
+
+                  <span
+                    style={{
+                      color:
+                        dm.subtext,
+                      fontSize:
+                        '0.85rem',
+                    }}
+                  >
+                    {course.rating
+                      ? Number(
+                          course.rating
+                        ).toFixed(1)
+                      : 'No rating'}
+                  </span>
+                </div>
+
+                {/* Button */}
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+
+                    handleSelectCourse(
+                      course
+                    );
+                  }}
+                  style={{
+                    background:
+                      dm.btnBack,
+                    color:
+                      'white',
+                    border:
+                      'none',
+                    padding:
+                      '10px 20px',
+                    borderRadius:
+                      '8px',
+                    cursor:
+                      'pointer',
+                    fontWeight:
+                      '600',
+                    width:
+                      '100%',
+                    marginTop:
+                      '10px',
+                  }}
+                >
+                  <i className="fas fa-arrow-right"></i>{' '}
+                  View Details
+                </button>
               </div>
-
-              {/* BUTTON */}
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelected(course);
-                }}
-                style={{
-                  background: dm.btnBack,
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  width: '100%',
-                }}
-              >
-                <i className="fas fa-arrow-right"></i>{' '}
-                View Details
-              </button>
-            </div>
-          ))}
+            )
+          )}
         </div>
       )}
 
-      {/* ANIMATIONS */}
+      {/* Local Animations */}
 
       <style>
         {`
@@ -1002,51 +1113,13 @@ const Courses = () => {
             }
           }
 
-          @keyframes slideUp {
-            from {
-              opacity: 0;
-              transform: translateY(30px);
-            }
-
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-            }
-
-            to {
-              opacity: 1;
-            }
-          }
-
-          @keyframes courseIconFloat {
+          @keyframes pulse {
             0%, 100% {
-              transform: translateY(0);
+              opacity: 0.6;
             }
 
             50% {
-              transform: translateY(-8px);
-            }
-          }
-
-          @keyframes successPop {
-            0% {
-              opacity: 0;
-              transform: scale(0.8);
-            }
-
-            70% {
-              transform: scale(1.05);
-            }
-
-            100% {
               opacity: 1;
-              transform: scale(1);
             }
           }
         `}
