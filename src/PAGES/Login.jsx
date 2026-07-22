@@ -7,118 +7,273 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_TIME = 15 * 60 * 1000;
 
 const Login = () => {
+  const navigate = useNavigate();
+
   const [fadeIn, setFadeIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  useEffect(() => { setFadeIn(true); }, []);
+  useEffect(() => {
+    setTimeout(() => {
+      setFadeIn(true);
+    }, 100);
+  }, []);
 
-  const handleLogin = async () => {
-    const lockout = localStorage.getItem('lockout_until');
-    if (lockout && Date.now() < parseInt(lockout)) {
-      const mins = Math.ceil((parseInt(lockout) - Date.now()) / 60000);
-      setError(`Too many attempts. Try again in ${mins} minutes.`);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    if (!email || !password) {
+      setError('Please enter your email and password.');
       return;
     }
+
+    const lockout = localStorage.getItem('lockout_until');
+
+    if (lockout && Date.now() < parseInt(lockout)) {
+      const mins = Math.ceil(
+        (parseInt(lockout) - Date.now()) / 60000
+      );
+
+      setError(
+        `Too many attempts. Please try again in ${mins} minutes.`
+      );
+
+      return;
+    }
+
     setLoading(true);
     setError('');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
     if (error) {
-      const attempts = parseInt(localStorage.getItem('login_attempts') || '0') + 1;
-      localStorage.setItem('login_attempts', attempts);
+      const attempts =
+        parseInt(
+          localStorage.getItem('login_attempts') || '0'
+        ) + 1;
+
+      localStorage.setItem(
+        'login_attempts',
+        attempts
+      );
+
       if (attempts >= MAX_ATTEMPTS) {
-        localStorage.setItem('lockout_until', Date.now() + LOCKOUT_TIME);
+        localStorage.setItem(
+          'lockout_until',
+          Date.now() + LOCKOUT_TIME
+        );
+
         localStorage.removeItem('login_attempts');
-        setError('Too many failed attempts. Account locked for 15 minutes. 🔒');
+
+        setError(
+          'Too many failed attempts. Login locked for 15 minutes. 🔒'
+        );
       } else {
-        setError(`Invalid credentials. ${MAX_ATTEMPTS - attempts} attempts remaining.`);
+        setError(
+          `Invalid email or password. ${
+            MAX_ATTEMPTS - attempts
+          } attempts remaining.`
+        );
       }
     } else {
       localStorage.removeItem('login_attempts');
       localStorage.removeItem('lockout_until');
+
       navigate('/home');
     }
+
     setLoading(false);
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0a2e 0%, #003366 40%, #005599 70%, #0077b6 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      opacity: fadeIn ? 1 : 0,
-      transition: 'opacity 1s',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {[
-        { size: 300, top: '-100px', left: '-100px', color: 'rgba(240,165,0,0.15)' },
-        { size: 400, bottom: '-150px', right: '-150px', color: 'rgba(0,119,182,0.2)' },
-        { size: 200, top: '50%', left: '30%', color: 'rgba(255,255,255,0.05)' },
-      ].map((c, i) => (
-        <div key={i} style={{
-          position: 'absolute', width: c.size, height: c.size,
-          borderRadius: '50%', background: c.color,
-          top: c.top, bottom: c.bottom, left: c.left, right: c.right,
-          filter: 'blur(40px)'
-        }} />
-      ))}
+    <div
+      className={`login-page ${
+        fadeIn ? 'login-page-visible' : ''
+      }`}
+    >
 
-      <div style={{
-        background: 'rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.2)',
-        borderRadius: '24px',
-        padding: '50px 40px',
-        width: '100%',
-        maxWidth: '420px',
-        boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
-        zIndex: 1,
-        textAlign: 'center'
-      }}>
-        <div style={{ marginBottom: '25px' }}>
-          <i className="fas fa-graduation-cap" style={{ fontSize: '3.5rem', color: '#f0a500' }}></i>
+      {/* Animated Background */}
+      <div className="login-background">
+
+        <div className="login-orb login-orb-1"></div>
+
+        <div className="login-orb login-orb-2"></div>
+
+        <div className="login-orb login-orb-3"></div>
+
+        <div className="login-grid"></div>
+
+      </div>
+
+      {/* Login Card */}
+      <div className="login-glass-card">
+
+        {/* Logo */}
+        <div className="login-logo-wrapper">
+          <div className="login-logo-ring">
+            <i className="fas fa-graduation-cap"></i>
+          </div>
         </div>
-        <h1 style={{ color: 'white', fontSize: '2rem', marginBottom: '5px' }}>Zephyr Academy</h1>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '30px' }}>
+
+        {/* Title */}
+        <h1 className="login-title">
+          Zephyr Academy
+        </h1>
+
+        <p className="login-subtitle">
           Learn. Grow. Succeed.
         </p>
 
-        {error && <p style={{ color: '#ff6b6b', marginBottom: '15px', fontSize: '0.9rem', background: 'rgba(255,107,107,0.1)', padding: '10px', borderRadius: '8px' }}>{error}</p>}
+        <div className="login-line"></div>
 
-        <div style={{ marginBottom: '15px', textAlign: 'left' }}>
-          <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', marginBottom: '6px', display: 'block' }}>
-            <i className="fas fa-envelope" style={{ marginRight: '6px', color: '#f0a500' }}></i> Email
-          </label>
-          <input type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem', outline: 'none' }} />
+        {/* Error Message */}
+        {error && (
+          <div className="login-error">
+            <i className="fas fa-exclamation-circle"></i>
+
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleLogin}>
+
+          {/* Email */}
+          <div className="login-field">
+
+            <label>
+              <i className="fas fa-envelope"></i>
+              Email Address
+            </label>
+
+            <div className="login-input-wrapper">
+
+              <i className="fas fa-envelope login-input-icon"></i>
+
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) =>
+                  setEmail(e.target.value)
+                }
+                autoComplete="email"
+              />
+
+            </div>
+
+          </div>
+
+          {/* Password */}
+          <div className="login-field">
+
+            <label>
+              <i className="fas fa-lock"></i>
+              Password
+            </label>
+
+            <div className="login-input-wrapper">
+
+              <i className="fas fa-lock login-input-icon"></i>
+
+              <input
+                type={
+                  showPassword
+                    ? 'text'
+                    : 'password'
+                }
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
+                autoComplete="current-password"
+              />
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() =>
+                  setShowPassword(!showPassword)
+                }
+              >
+                <i
+                  className={
+                    showPassword
+                      ? 'fas fa-eye-slash'
+                      : 'fas fa-eye'
+                  }
+                ></i>
+              </button>
+
+            </div>
+
+          </div>
+
+          {/* Login Button */}
+          <button
+            type="submit"
+            className={`login-submit ${
+              loading ? 'login-loading' : ''
+            }`}
+            disabled={loading}
+          >
+
+            {loading ? (
+              <>
+                <i className="fas fa-spinner fa-spin"></i>
+                Signing you in...
+              </>
+            ) : (
+              <>
+                <span>Login to Your Account</span>
+                <i className="fas fa-arrow-right"></i>
+              </>
+            )}
+
+          </button>
+
+        </form>
+
+        {/* Divider */}
+        <div className="login-divider">
+          <span>OR</span>
         </div>
 
-        <div style={{ marginBottom: '25px', textAlign: 'left' }}>
-          <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', marginBottom: '6px', display: 'block' }}>
-            <i className="fas fa-lock" style={{ marginRight: '6px', color: '#f0a500' }}></i> Password
-          </label>
-          <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem', outline: 'none' }} />
+        {/* Signup */}
+        <div className="login-signup-box">
+
+          <p>
+            Don't have an account?
+          </p>
+
+          <button
+            onClick={() => navigate('/signup')}
+            className="login-signup-button"
+          >
+            <span>Create New Account</span>
+            <i className="fas fa-user-plus"></i>
+          </button>
+
         </div>
 
-        <button onClick={handleLogin} disabled={loading}
-          style={{ width: '100%', padding: '15px', borderRadius: '12px', background: 'linear-gradient(90deg, #f0a500, #f7c948)', color: '#003366', fontWeight: '700', fontSize: '1rem', border: 'none', cursor: 'pointer', transition: 'all 0.3s', marginBottom: '20px', boxShadow: '0 8px 20px rgba(240,165,0,0.3)' }}>
-          <i className="fas fa-sign-in-alt" style={{ marginRight: '8px' }}></i>
-          {loading ? 'Loading...' : 'Login'}
-        </button>
+        {/* Footer */}
+        <div className="login-footer">
 
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
-          Don't have an account?{' '}
-          <a onClick={() => navigate('/signup')} style={{ color: '#f0a500', cursor: 'pointer', fontWeight: '600', textDecoration: 'none' }}>Sign Up</a>
-        </p>
+          <i className="fas fa-shield-alt"></i>
+
+          Secure & Trusted Learning Platform
+
+        </div>
+
       </div>
+
     </div>
   );
 };
