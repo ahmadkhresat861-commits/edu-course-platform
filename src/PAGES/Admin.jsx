@@ -86,7 +86,6 @@
               padding: '14px',
               border: '1px solid #ddd',
               borderRadius: '8px',
-              background: 'white',
             }}
           >
             <option value="user">
@@ -117,32 +116,30 @@
 
         <button
           type="submit"
-          disabled={creatingUser}
+          disabled={userActionLoading}
           style={{
             marginTop: '20px',
-            background: creatingUser
+            background: userActionLoading
               ? '#999'
               : '#003366',
             color: 'white',
             border: 'none',
             padding: '12px 25px',
             borderRadius: '8px',
-            cursor: creatingUser
-              ? 'not-allowed'
-              : 'pointer',
+            cursor: 'pointer',
             fontWeight: '600',
           }}
         >
           <i
             className={
-              creatingUser
+              userActionLoading
                 ? 'fas fa-spinner fa-spin'
                 : 'fas fa-user-plus'
             }
           ></i>{' '}
 
-          {creatingUser
-            ? 'Creating...'
+          {userActionLoading
+            ? 'Processing...'
             : 'Create User'}
         </button>
       </form>
@@ -180,6 +177,7 @@
 
         <button
           onClick={fetchUsers}
+          disabled={usersLoading}
           style={{
             background: '#003366',
             color: 'white',
@@ -189,7 +187,14 @@
             cursor: 'pointer',
           }}
         >
-          <i className="fas fa-sync"></i>{' '}
+          <i
+            className={
+              usersLoading
+                ? 'fas fa-spinner fa-spin'
+                : 'fas fa-sync'
+            }
+          ></i>{' '}
+
           Refresh
         </button>
       </div>
@@ -229,48 +234,23 @@
                 color: 'white',
               }}
             >
-              <th
-                style={{
-                  padding: '15px',
-                  textAlign: 'left',
-                }}
-              >
-                User ID
+              <th style={{ padding: '15px' }}>
+                ID
               </th>
 
-              <th
-                style={{
-                  padding: '15px',
-                  textAlign: 'left',
-                }}
-              >
+              <th style={{ padding: '15px' }}>
                 Email
               </th>
 
-              <th
-                style={{
-                  padding: '15px',
-                  textAlign: 'left',
-                }}
-              >
-                Username
+              <th style={{ padding: '15px' }}>
+                Created At
               </th>
 
-              <th
-                style={{
-                  padding: '15px',
-                  textAlign: 'left',
-                }}
-              >
-                Created
+              <th style={{ padding: '15px' }}>
+                Status
               </th>
 
-              <th
-                style={{
-                  padding: '15px',
-                  textAlign: 'left',
-                }}
-              >
+              <th style={{ padding: '15px' }}>
                 Actions
               </th>
             </tr>
@@ -288,8 +268,7 @@
                 <td
                   style={{
                     padding: '15px',
-                    fontSize: '0.8rem',
-                    color: '#666',
+                    fontSize: '12px',
                   }}
                 >
                   {user.id}
@@ -299,7 +278,6 @@
                   style={{
                     padding: '15px',
                     fontWeight: '600',
-                    color: '#003366',
                   }}
                 >
                   {user.email || '-'}
@@ -310,8 +288,11 @@
                     padding: '15px',
                   }}
                 >
-                  {user.user_metadata
-                    ?.username || '-'}
+                  {user.created_at
+                    ? new Date(
+                        user.created_at
+                      ).toLocaleString()
+                    : '-'}
                 </td>
 
                 <td
@@ -319,11 +300,25 @@
                     padding: '15px',
                   }}
                 >
-                  {user.created_at
-                    ? new Date(
-                        user.created_at
-                      ).toLocaleDateString()
-                    : '-'}
+                  {user.email_confirmed_at ? (
+                    <span
+                      style={{
+                        color: '#10b981',
+                        fontWeight: '600',
+                      }}
+                    >
+                      Confirmed
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        color: '#f0a500',
+                        fontWeight: '600',
+                      }}
+                    >
+                      Not Confirmed
+                    </span>
+                  )}
                 </td>
 
                 <td
@@ -334,6 +329,9 @@
                   <button
                     onClick={() =>
                       deleteUser(user.id)
+                    }
+                    disabled={
+                      userActionLoading
                     }
                     style={{
                       background: '#ef4444',
