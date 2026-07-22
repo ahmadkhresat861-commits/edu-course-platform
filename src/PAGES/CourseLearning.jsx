@@ -2,400 +2,436 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useLang } from '../LanguageContext';
-import '../App.css';
 
 const CourseLearning = () => {
-  const { id } = useParams();
+  const { courseId } = useParams();
   const navigate = useNavigate();
   const { darkMode } = useLang();
 
   const [user, setUser] = useState(null);
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
-  const [progressData, setProgressData] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
 
+  const [enrollment, setEnrollment] = useState(null);
+  const [completedLessons, setCompletedLessons] = useState([]);
+
   const [loading, setLoading] = useState(true);
-  const [lessonLoading, setLessonLoading] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [message, setMessage] = useState('');
 
-  const bg = darkMode ? '#0f1117' : '#f5f7fa';
-  const card = darkMode ? '#1e2130' : '#ffffff';
-  const text = darkMode ? '#e0e6f0' : '#003366';
-  const text2 = darkMode ? '#a8b2c8' : '#666';
-  const border = darkMode ? '#2e3250' : '#e5e7eb';
-  const progressBg = darkMode ? '#2a2d3d' : '#e5e7eb';
+  // =========================
+  // THEME
+  // =========================
 
-  // =========================================
-  // LOAD USER + COURSE + LESSONS
-  // =========================================
+  const dm = {
+    bg: darkMode ? '#0f1117' : '#f5f7fa',
+    card: darkMode ? '#1e2130' : '#ffffff',
+    heading: darkMode ? '#a0b4ff' : '#003366',
+    text: darkMode ? '#c8d0e0' : '#555',
+    subtext: darkMode ? '#7a8499' : '#888',
+    border: darkMode ? '#2e3250' : '#e5e7eb',
+    primary: darkMode ? '#2a3580' : '#003366',
+    success: '#10b981',
+    danger: '#ef4444',
+  };
+
+  // =========================
+  // LOAD EVERYTHING
+  // =========================
 
   useEffect(() => {
     loadCourseData();
-  }, [id]);
+  }, [courseId]);
 
   const loadCourseData = async () => {
-    setLoading(true);
-    setMessage('');
+    try {
+      setLoading(true);
+      setMessage('');
 
-    // Get logged user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      // =========================
+      // GET CURRENT USER
+      // =========================
 
-    if (!user) {
-      navigate('/');
-      return;
-    }
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    setUser(user);
+      if (userError || !user) {
+        navigate('/');
+        return;
+      }
 
-    // Get course
-    const {
-      data: courseData,
-      error: courseError,
-    } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('id', id)
-      .single();
+      setUser(user);
 
-    if (courseError) {
-      console.error('Course error:', courseError);
-      setMessage('Course not found.');
-      setLoading(false);
-      return;
-    }
+      // =========================
+      // GET COURSE
+      // =========================
 
-    setCourse(courseData);
+      const {
+        data: courseData,
+        error: courseError,
+      } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('id', courseId)
+        .single();
 
-    // Check enrollment
-    const {
-      data: enrollment,
-      error: enrollmentError,
-    } = await supabase
-      .from('enrollments')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('course_id', id)
-      .maybeSingle();
+      if (courseError) {
+        console.error('Course error:', courseError);
+        setMessage('Could not load this course.');
+        return;
+      }
 
-    if (enrollmentError) {
-      console.error('Enrollment error:', enrollmentError);
-    }
+      setCourse(courseData);
 
-    if (!enrollment) {
-      setMessage(
-        'You are not enrolled in this course. Please enroll first.'
-      );
+      // =========================
+      // CHECK ENROLLMENT
+      // =========================
 
-      setLoading(false);
-      return;
-    }
+      const {
+        data: enrollmentData,
+        error: enrollmentError,
+      } = await supabase
+        .from('enrollments')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId)
+        .maybeSingle();
 
-    // Get lessons
-    const {
-      data: lessonsData,
-      error: lessonsError,
-    } = await supabase
-      .from('lessons')
-      .select('*')
-      .eq('course_id', id)
-      .order('lesson_order', {
-        ascending: true,
-      });
+      if (enrollmentError) {
+        console.error(
+          'Enrollment error:',
+          enrollmentError
+        );
+      }
 
-    if (lessonsError) {
-      console.error('Lessons error:', lessonsError);
-      setMessage('Could not load lessons.');
-      setLoading(false);
-      return;
-    }
+      // User is not enrolled
+      if (!enrollmentData) {
+        navigate('/courses');
+        return;
+      }
 
-    setLessons(lessonsData || []);
+      setEnrollment(enrollmentData);
 
-    // Get user progress
-    const {
-      data: progress,
-      error: progressError,
-    } = await supabase
-      .from('lesson_progress')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('course_id', id);
+      // =========================
+      // GET LESSONS
+      // =========================
 
-    if (progressError) {
-      console.error('Progress error:', progressError);
-    }
+      const {
+        data: lessonsData,
+        error: lessonsError,
+      } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('course_id', courseId)
+        .order('id', { ascending: true });
 
-    setProgressData(progress || []);
+      if (lessonsError) {
+        console.error(
+          'Lessons error:',
+          lessonsError
+        );
 
-    // Select first incomplete lesson
-    const firstIncomplete = (lessonsData || []).find(
-      (lesson) =>
-        !(progress || []).some(
-          (item) =>
-            item.lesson_id === lesson.id &&
-            item.completed === true
-        )
-    );
+        setMessage(
+          'Could not load course lessons.'
+        );
 
-    if (firstIncomplete) {
-      setSelectedLesson(firstIncomplete);
-    } else if (lessonsData?.length > 0) {
-      setSelectedLesson(lessonsData[0]);
-    }
+        return;
+      }
 
-    setLoading(false);
-  };
+      setLessons(lessonsData || []);
 
-  // =========================================
-  // CHECK LESSON COMPLETION
-  // =========================================
+      // =========================
+      // GET COMPLETED LESSONS
+      // =========================
 
-  const isLessonCompleted = (lessonId) => {
-    return progressData.some(
-      (item) =>
-        item.lesson_id === lessonId &&
-        item.completed === true
-    );
-  };
-
-  // =========================================
-  // CALCULATE PROGRESS
-  // =========================================
-
-  const completedLessons = lessons.filter((lesson) =>
-    isLessonCompleted(lesson.id)
-  ).length;
-
-  const progressPercentage =
-    lessons.length > 0
-      ? Math.round(
-          (completedLessons / lessons.length) * 100
-        )
-      : 0;
-
-  // =========================================
-  // COMPLETE LESSON
-  // =========================================
-
-  const handleCompleteLesson = async () => {
-    if (!user || !selectedLesson) return;
-
-    setLessonLoading(true);
-    setMessage('');
-
-    const existingProgress = progressData.find(
-      (item) =>
-        item.lesson_id === selectedLesson.id
-    );
-
-    let error;
-
-    if (existingProgress) {
-      const result = await supabase
+      const {
+        data: progressData,
+        error: progressError,
+      } = await supabase
         .from('lesson_progress')
-        .update({
-          completed: true,
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', existingProgress.id);
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId)
+        .eq('completed', true);
 
-      error = result.error;
-    } else {
-      const result = await supabase
-        .from('lesson_progress')
-        .insert({
-          user_id: user.id,
-          course_id: course.id,
-          lesson_id: selectedLesson.id,
-          completed: true,
-          completed_at: new Date().toISOString(),
-        });
+      if (progressError) {
+        console.error(
+          'Progress loading error:',
+          progressError
+        );
+      }
 
-      error = result.error;
-    }
+      const completedIds =
+        progressData?.map(
+          (item) => item.lesson_id
+        ) || [];
 
-    if (error) {
+      setCompletedLessons(completedIds);
+
+      // =========================
+      // SELECT FIRST UNCOMPLETED LESSON
+      // =========================
+
+      if (lessonsData && lessonsData.length > 0) {
+        const firstUncompleted =
+          lessonsData.find(
+            (lesson) =>
+              !completedIds.includes(
+                lesson.id
+              )
+          );
+
+        setSelectedLesson(
+          firstUncompleted ||
+            lessonsData[0]
+        );
+      }
+    } catch (error) {
       console.error(
-        'Complete lesson error:',
+        'Unexpected error:',
         error
       );
 
       setMessage(
-        'Could not save your progress.'
+        'Something went wrong.'
       );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      setLessonLoading(false);
+  // =========================
+  // COMPLETE LESSON
+  // =========================
+
+  const handleCompleteLesson = async () => {
+    if (
+      !selectedLesson ||
+      !user ||
+      !enrollment
+    ) {
       return;
     }
 
-    // Reload progress
-    const {
-      data: updatedProgress,
-    } = await supabase
-      .from('lesson_progress')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('course_id', course.id);
+    // Already completed
+    if (
+      completedLessons.includes(
+        selectedLesson.id
+      )
+    ) {
+      return;
+    }
 
-    setProgressData(
-      updatedProgress || []
-    );
+    try {
+      setCompleting(true);
+      setMessage('');
 
-    // Calculate new progress
-    const newCompletedCount = lessons.filter(
-      (lesson) =>
-        lesson.id === selectedLesson.id ||
-        (updatedProgress || []).some(
-          (item) =>
-            item.lesson_id === lesson.id &&
-            item.completed === true
-        )
-    ).length;
+      // =========================
+      // INSERT PROGRESS
+      // =========================
 
-    const newPercentage =
-      lessons.length > 0
-        ? Math.round(
-            (newCompletedCount /
-              lessons.length) *
-              100
-          )
-        : 0;
+      const {
+        data: progressData,
+        error: progressError,
+      } = await supabase
+        .from('lesson_progress')
+        .insert({
+          user_id: user.id,
+          course_id: courseId,
+          lesson_id: selectedLesson.id,
+          completed: true,
+          completed_at:
+            new Date().toISOString(),
+        })
+        .select()
+        .single();
 
-    // Update enrollment
-    const { error: enrollmentError } =
-      await supabase
+      if (progressError) {
+        // Duplicate lesson progress
+        if (
+          progressError.code === '23505'
+        ) {
+          setMessage(
+            'This lesson is already completed.'
+          );
+        } else {
+          console.error(
+            'Complete lesson error:',
+            progressError
+          );
+
+          setMessage(
+            'Could not save your progress.'
+          );
+        }
+
+        return;
+      }
+
+      // =========================
+      // UPDATE LOCAL COMPLETED LESSONS
+      // =========================
+
+      const updatedCompletedLessons = [
+        ...completedLessons,
+        selectedLesson.id,
+      ];
+
+      setCompletedLessons(
+        updatedCompletedLessons
+      );
+
+      // =========================
+      // CALCULATE PROGRESS
+      // =========================
+
+      const totalLessons =
+        lessons.length;
+
+      const completedCount =
+        updatedCompletedLessons.length;
+
+      const newProgress =
+        totalLessons > 0
+          ? Math.round(
+              (completedCount /
+                totalLessons) *
+                100
+            )
+          : 0;
+
+      // =========================
+      // UPDATE ENROLLMENT
+      // =========================
+
+      const {
+        data: updatedEnrollment,
+        error: enrollmentUpdateError,
+      } = await supabase
         .from('enrollments')
         .update({
-          progress: newPercentage,
+          progress: newProgress,
           completed:
-            newPercentage === 100,
+            newProgress === 100,
         })
-        .eq('user_id', user.id)
-        .eq('course_id', course.id);
+        .eq('id', enrollment.id)
+        .select()
+        .single();
 
-    if (enrollmentError) {
+      if (enrollmentUpdateError) {
+        console.error(
+          'Enrollment update error:',
+          enrollmentUpdateError
+        );
+      } else {
+        setEnrollment(
+          updatedEnrollment
+        );
+      }
+
+      // =========================
+      // COURSE COMPLETED
+      // =========================
+
+      if (newProgress === 100) {
+        setMessage(
+          '🎉 Congratulations! You completed the entire course!'
+        );
+
+        return;
+      }
+
+      // =========================
+      // NEXT LESSON
+      // =========================
+
+      const currentIndex =
+        lessons.findIndex(
+          (lesson) =>
+            lesson.id ===
+            selectedLesson.id
+        );
+
+      const nextLesson =
+        lessons[currentIndex + 1];
+
+      if (nextLesson) {
+        setMessage(
+          `Lesson completed! Your progress is now ${newProgress}%.`
+        );
+
+        setTimeout(() => {
+          setSelectedLesson(
+            nextLesson
+          );
+
+          setMessage('');
+        }, 1200);
+      }
+    } catch (error) {
       console.error(
-        'Enrollment progress error:',
-        enrollmentError
-      );
-    }
-
-    setMessage(
-      newPercentage === 100
-        ? 'Congratulations! You completed the course! 🎉'
-        : 'Lesson completed successfully! ✅'
-    );
-
-    // Move to next lesson
-    const currentIndex =
-      lessons.findIndex(
-        (lesson) =>
-          lesson.id === selectedLesson.id
+        'Unexpected completion error:',
+        error
       );
 
-    const nextLesson =
-      lessons[currentIndex + 1];
-
-    if (nextLesson) {
-      setTimeout(() => {
-        setSelectedLesson(nextLesson);
-        setMessage('');
-      }, 1000);
+      setMessage(
+        'Something went wrong.'
+      );
+    } finally {
+      setCompleting(false);
     }
-
-    setLessonLoading(false);
   };
 
-  // =========================================
+  // =========================
   // LOADING
-  // =========================================
+  // =========================
 
   if (loading) {
     return (
-      <section
+      <div
         style={{
           minHeight: '100vh',
-          background: bg,
+          background: dm.bg,
           display: 'flex',
-          justifyContent: 'center',
           alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
         }}
       >
-        <div style={{ textAlign: 'center' }}>
+        <div>
           <i
             className="fas fa-spinner fa-spin"
             style={{
               fontSize: '3rem',
-              color: '#003366',
+              color: dm.heading,
             }}
           ></i>
 
-          <p style={{ color: text2 }}>
+          <p
+            style={{
+              color: dm.text,
+              marginTop: '15px',
+            }}
+          >
             Loading course...
           </p>
         </div>
-      </section>
+      </div>
     );
   }
 
-  // =========================================
-  // NOT ENROLLED / ERROR
-  // =========================================
-
-  if (!course || lessons.length === 0) {
-    return (
-      <section
-        style={{
-          minHeight: '100vh',
-          background: bg,
-          padding: '60px 20px',
-          textAlign: 'center',
-        }}
-      >
-        <i
-          className="fas fa-book-open"
-          style={{
-            fontSize: '4rem',
-            color: '#f0a500',
-            marginBottom: '20px',
-          }}
-        ></i>
-
-        <h2 style={{ color: text }}>
-          {message ||
-            'No lessons available yet.'}
-        </h2>
-
-        <button
-          onClick={() => navigate('/courses')}
-          style={{
-            marginTop: '20px',
-            padding: '12px 25px',
-            background: '#003366',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-          }}
-        >
-          Back to Courses
-        </button>
-      </section>
-    );
-  }
-
-  // =========================================
-  // MAIN PAGE
-  // =========================================
+  // =========================
+  // PAGE
+  // =========================
 
   return (
-    <section
+    <div
       style={{
         minHeight: '100vh',
-        background: bg,
+        background: dm.bg,
         padding: '40px 20px',
       }}
     >
@@ -409,15 +445,17 @@ const CourseLearning = () => {
         {/* BACK */}
 
         <button
-          onClick={() => navigate('/courses')}
+          onClick={() =>
+            navigate('/courses')
+          }
           style={{
-            marginBottom: '25px',
-            padding: '10px 20px',
-            background: '#003366',
+            background: dm.primary,
             color: 'white',
             border: 'none',
+            padding: '10px 20px',
             borderRadius: '8px',
             cursor: 'pointer',
+            marginBottom: '25px',
           }}
         >
           <i className="fas fa-arrow-left"></i>{' '}
@@ -428,25 +466,30 @@ const CourseLearning = () => {
 
         <div
           style={{
-            background:
-              'linear-gradient(135deg, #003366, #005599)',
-            color: 'white',
-            padding: '30px',
+            background: dm.card,
             borderRadius: '15px',
+            padding: '30px',
             marginBottom: '25px',
+            boxShadow:
+              '0 5px 20px rgba(0,0,0,0.08)',
           }}
         >
-          <h1>
+          <h1
+            style={{
+              color: dm.heading,
+              marginBottom: '10px',
+            }}
+          >
             <i className="fas fa-graduation-cap"></i>{' '}
-            {course.title}
+            {course?.title}
           </h1>
 
           <p
             style={{
-              color: '#c8d0e0',
+              color: dm.text,
             }}
           >
-            {course.category}
+            Continue your learning journey.
           </p>
 
           {/* PROGRESS */}
@@ -464,75 +507,78 @@ const CourseLearning = () => {
                 marginBottom: '8px',
               }}
             >
-              <span>
-                Course Progress
+              <span
+                style={{
+                  color: dm.text,
+                  fontWeight: '600',
+                }}
+              >
+                Your Progress
               </span>
 
-              <strong>
-                {progressPercentage}%
-              </strong>
+              <span
+                style={{
+                  color: dm.success,
+                  fontWeight: '700',
+                }}
+              >
+                {enrollment?.progress || 0}%
+              </span>
             </div>
 
             <div
               style={{
-                width: '100%',
-                height: '10px',
-                background:
-                  'rgba(255,255,255,0.2)',
+                height: '12px',
+                background: darkMode
+                  ? '#2a2d3d'
+                  : '#e5e7eb',
                 borderRadius: '10px',
                 overflow: 'hidden',
               }}
             >
               <div
                 style={{
-                  width: `${progressPercentage}%`,
+                  width: `${
+                    enrollment?.progress || 0
+                  }%`,
                   height: '100%',
-                  background: '#f0a500',
+                  background:
+                    'linear-gradient(90deg, #003366, #f0a500)',
                   transition:
                     'width 0.5s ease',
                 }}
               ></div>
             </div>
-
-            <p
-              style={{
-                marginTop: '8px',
-                fontSize: '0.9rem',
-              }}
-            >
-              {completedLessons} of{' '}
-              {lessons.length} lessons
-              completed
-            </p>
           </div>
         </div>
 
-        {/* CONTENT GRID */}
+        {/* MAIN */}
 
         <div
+          className="learning-layout"
           style={{
             display: 'grid',
             gridTemplateColumns:
-              '300px 1fr',
+              '280px 1fr',
             gap: '25px',
           }}
         >
 
-          {/* LESSON LIST */}
+          {/* LESSONS */}
 
           <div
             style={{
-              background: card,
+              background: dm.card,
               borderRadius: '15px',
               padding: '20px',
               boxShadow:
-                '0 4px 15px rgba(0,0,0,0.08)',
+                '0 5px 20px rgba(0,0,0,0.08)',
               height: 'fit-content',
             }}
           >
             <h3
               style={{
-                color: text,
+                color: dm.heading,
                 marginBottom: '20px',
               }}
             >
@@ -540,92 +586,100 @@ const CourseLearning = () => {
               Course Lessons
             </h3>
 
-            {lessons.map(
-              (lesson, index) => {
-                const completed =
-                  isLessonCompleted(
-                    lesson.id
-                  );
+            {lessons.length === 0 ? (
+              <p
+                style={{
+                  color: dm.subtext,
+                }}
+              >
+                No lessons available yet.
+              </p>
+            ) : (
+              lessons.map(
+                (lesson, index) => {
+                  const isCompleted =
+                    completedLessons.includes(
+                      lesson.id
+                    );
 
-                const active =
-                  selectedLesson?.id ===
-                  lesson.id;
+                  const isSelected =
+                    selectedLesson?.id ===
+                    lesson.id;
 
-                return (
-                  <button
-                    key={lesson.id}
-                    onClick={() =>
-                      setSelectedLesson(
-                        lesson
-                      )
-                    }
-                    style={{
-                      width: '100%',
-                      padding: '15px',
-                      marginBottom: '10px',
-                      textAlign: 'left',
-                      border: active
-                        ? '2px solid #f0a500'
-                        : `1px solid ${border}`,
-                      background: active
-                        ? darkMode
-                          ? '#2a3050'
-                          : '#f8fafc'
-                        : 'transparent',
-                      color: text,
-                      borderRadius: '10px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div
+                  return (
+                    <button
+                      key={lesson.id}
+                      onClick={() =>
+                        setSelectedLesson(
+                          lesson
+                        )
+                      }
                       style={{
-                        display: 'flex',
-                        gap: '10px',
-                        alignItems:
-                          'center',
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '15px',
+                        marginBottom: '10px',
+                        borderRadius: '10px',
+                        border: isSelected
+                          ? `2px solid ${dm.primary}`
+                          : `1px solid ${dm.border}`,
+                        background:
+                          isSelected
+                            ? darkMode
+                              ? '#2a3580'
+                              : '#eef4ff'
+                            : 'transparent',
+                        color: dm.text,
+                        cursor: 'pointer',
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius:
-                            '50%',
-                          background:
-                            completed
-                              ? '#10b981'
-                              : '#003366',
-                          color: 'white',
                           display: 'flex',
+                          gap: '10px',
                           alignItems:
                             'center',
-                          justifyContent:
-                            'center',
-                          fontSize:
-                            '0.8rem',
                         }}
                       >
-                        {completed ? (
-                          <i className="fas fa-check"></i>
-                        ) : (
-                          index + 1
-                        )}
-                      </span>
+                        <span
+                          style={{
+                            minWidth: '30px',
+                            height: '30px',
+                            borderRadius:
+                              '50%',
+                            display: 'flex',
+                            alignItems:
+                              'center',
+                            justifyContent:
+                              'center',
+                            background:
+                              isCompleted
+                                ? dm.success
+                                : dm.primary,
+                            color: 'white',
+                            fontSize:
+                              '0.8rem',
+                          }}
+                        >
+                          {isCompleted ? (
+                            <i className="fas fa-check"></i>
+                          ) : (
+                            index + 1
+                          )}
+                        </span>
 
-                      <span
-                        style={{
-                          fontWeight:
-                            active
-                              ? '700'
-                              : '500',
-                        }}
-                      >
-                        {lesson.title}
-                      </span>
-                    </div>
-                  </button>
-                );
-              }
+                        <span
+                          style={{
+                            fontWeight: '600',
+                          }}
+                        >
+                          {lesson.title}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                }
+              )
             )}
           </div>
 
@@ -633,157 +687,183 @@ const CourseLearning = () => {
 
           <div
             style={{
-              background: card,
+              background: dm.card,
               borderRadius: '15px',
-              padding: '30px',
+              padding: '35px',
               boxShadow:
-                '0 4px 15px rgba(0,0,0,0.08)',
+                '0 5px 20px rgba(0,0,0,0.08)',
+              minHeight: '450px',
             }}
           >
-            {selectedLesson && (
+            {selectedLesson ? (
               <>
-                <h2
-                  style={{
-                    color: text,
-                  }}
-                >
-                  {selectedLesson.title}
-                </h2>
-
-                {selectedLesson.description && (
-                  <p
-                    style={{
-                      color: text2,
-                      marginTop: '10px',
-                    }}
-                  >
-                    {
-                      selectedLesson.description
-                    }
-                  </p>
-                )}
-
-                {selectedLesson.video_url && (
-                  <div
-                    style={{
-                      marginTop: '25px',
-                    }}
-                  >
-                    <iframe
-                      width="100%"
-                      height="400"
-                      src={
-                        selectedLesson.video_url
-                      }
-                      title={
-                        selectedLesson.title
-                      }
-                      frameBorder="0"
-                      allowFullScreen
-                      style={{
-                        borderRadius:
-                          '10px',
-                      }}
-                    ></iframe>
-                  </div>
-                )}
-
-                {selectedLesson.content && (
-                  <div
-                    style={{
-                      marginTop: '25px',
-                      color: text,
-                      lineHeight: '1.8',
-                      whiteSpace:
-                        'pre-wrap',
-                    }}
-                  >
-                    {
-                      selectedLesson.content
-                    }
-                  </div>
-                )}
-
                 <div
                   style={{
-                    marginTop: '30px',
-                    paddingTop: '20px',
-                    borderTop:
-                      `1px solid ${border}`,
+                    display: 'flex',
+                    justifyContent:
+                      'space-between',
+                    alignItems: 'center',
+                    gap: '15px',
+                    marginBottom: '20px',
+                    flexWrap: 'wrap',
                   }}
                 >
-                  {isLessonCompleted(
+                  <h2
+                    style={{
+                      color: dm.heading,
+                      margin: 0,
+                    }}
+                  >
+                    {selectedLesson.title}
+                  </h2>
+
+                  {completedLessons.includes(
                     selectedLesson.id
-                  ) ? (
-                    <div
+                  ) && (
+                    <span
                       style={{
-                        color: '#10b981',
+                        color: dm.success,
                         fontWeight: '700',
                       }}
                     >
                       <i className="fas fa-check-circle"></i>{' '}
-                      Lesson Completed
-                    </div>
-                  ) : (
+                      Completed
+                    </span>
+                  )}
+                </div>
+
+                {selectedLesson.description && (
+                  <p
+                    style={{
+                      color: dm.subtext,
+                      fontSize: '1.05rem',
+                      marginBottom: '25px',
+                    }}
+                  >
+                    {selectedLesson.description}
+                  </p>
+                )}
+
+                <div
+                  style={{
+                    color: dm.text,
+                    lineHeight: '1.8',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {selectedLesson.content}
+                </div>
+
+                {/* COMPLETE */}
+
+                <div
+                  style={{
+                    marginTop: '35px',
+                    paddingTop: '25px',
+                    borderTop:
+                      `1px solid ${dm.border}`,
+                  }}
+                >
+                  {!completedLessons.includes(
+                    selectedLesson.id
+                  ) ? (
                     <button
                       onClick={
                         handleCompleteLesson
                       }
-                      disabled={
-                        lessonLoading
-                      }
+                      disabled={completing}
                       style={{
                         width: '100%',
                         padding: '15px',
                         background:
-                          lessonLoading
+                          completing
                             ? '#888'
-                            : '#003366',
+                            : 'linear-gradient(90deg, #003366, #005599)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '10px',
+                        fontSize: '1rem',
                         fontWeight: '700',
                         cursor:
-                          lessonLoading
+                          completing
                             ? 'not-allowed'
                             : 'pointer',
                       }}
                     >
                       <i
                         className={
-                          lessonLoading
+                          completing
                             ? 'fas fa-spinner fa-spin'
                             : 'fas fa-check'
                         }
                       ></i>{' '}
-                      {lessonLoading
+                      {completing
                         ? 'Saving...'
-                        : 'Complete Lesson'}
+                        : 'Mark as Complete'}
                     </button>
-                  )}
-
-                  {message && (
-                    <p
+                  ) : (
+                    <div
                       style={{
-                        marginTop: '15px',
-                        color:
-                          message.includes(
-                            'successfully'
-                          ) ||
-                          message.includes(
-                            'Congratulations'
-                          )
-                            ? '#10b981'
-                            : '#ef4444',
-                        fontWeight: '600',
                         textAlign: 'center',
+                        padding: '15px',
+                        background:
+                          darkMode
+                            ? '#0d2318'
+                            : '#f0fff4',
+                        color: dm.success,
+                        borderRadius: '10px',
+                        fontWeight: '700',
                       }}
                     >
-                      {message}
-                    </p>
+                      <i className="fas fa-check-circle"></i>{' '}
+                      Lesson Completed
+                    </div>
                   )}
                 </div>
+
+                {/* MESSAGE */}
+
+                {message && (
+                  <p
+                    style={{
+                      textAlign: 'center',
+                      color:
+                        message.includes(
+                          'Could not'
+                        ) ||
+                        message.includes(
+                          'Something'
+                        )
+                          ? dm.danger
+                          : dm.success,
+                      fontWeight: '600',
+                      marginTop: '20px',
+                    }}
+                  >
+                    {message}
+                  </p>
+                )}
               </>
+            ) : (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '80px 20px',
+                  color: dm.subtext,
+                }}
+              >
+                <i
+                  className="fas fa-book-open"
+                  style={{
+                    fontSize: '3rem',
+                    marginBottom: '15px',
+                  }}
+                ></i>
+
+                <p>
+                  Select a lesson to start learning.
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -794,13 +874,13 @@ const CourseLearning = () => {
       <style>
         {`
           @media (max-width: 768px) {
-            div[style*="grid-template-columns: 300px 1fr"] {
+            .learning-layout {
               grid-template-columns: 1fr !important;
             }
           }
         `}
       </style>
-    </section>
+    </div>
   );
 };
 
