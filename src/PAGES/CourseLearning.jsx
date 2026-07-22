@@ -18,7 +18,9 @@ const CourseLearning = () => {
 
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
+
   const [message, setMessage] = useState('');
+  const [showLessons, setShowLessons] = useState(false);
 
   // =========================
   // THEME
@@ -28,16 +30,27 @@ const CourseLearning = () => {
     bg: darkMode ? '#0f1117' : '#f5f7fa',
     card: darkMode ? '#1e2130' : '#ffffff',
     heading: darkMode ? '#a0b4ff' : '#003366',
-    text: darkMode ? '#c8d0e0' : '#555',
-    subtext: darkMode ? '#7a8499' : '#888',
+    text: darkMode ? '#c8d0e0' : '#444',
+    subtext: darkMode ? '#7a8499' : '#777',
     border: darkMode ? '#2e3250' : '#e5e7eb',
-    primary: darkMode ? '#2a3580' : '#003366',
+
+    primary: '#003366',
+    primaryLight: '#005599',
+
     success: '#10b981',
     danger: '#ef4444',
+
+    lessonActive: darkMode
+      ? '#2a3580'
+      : '#eef4ff',
+
+    lessonHover: darkMode
+      ? '#252940'
+      : '#f5f8ff',
   };
 
   // =========================
-  // LOAD EVERYTHING
+  // LOAD COURSE
   // =========================
 
   useEffect(() => {
@@ -50,7 +63,7 @@ const CourseLearning = () => {
       setMessage('');
 
       // =========================
-      // GET CURRENT USER
+      // GET USER
       // =========================
 
       const {
@@ -80,7 +93,11 @@ const CourseLearning = () => {
 
       if (courseError) {
         console.error('Course error:', courseError);
-        setMessage('Could not load this course.');
+
+        setMessage(
+          'Could not load this course.'
+        );
+
         return;
       }
 
@@ -105,9 +122,18 @@ const CourseLearning = () => {
           'Enrollment error:',
           enrollmentError
         );
+
+        setMessage(
+          'Could not verify your enrollment.'
+        );
+
+        return;
       }
 
-      // User is not enrolled
+      // =========================
+      // NOT ENROLLED
+      // =========================
+
       if (!enrollmentData) {
         navigate('/courses');
         return;
@@ -126,7 +152,9 @@ const CourseLearning = () => {
         .from('lessons')
         .select('*')
         .eq('course_id', courseId)
-        .order('id', { ascending: true });
+        .order('id', {
+          ascending: true,
+        });
 
       if (lessonsError) {
         console.error(
@@ -141,7 +169,10 @@ const CourseLearning = () => {
         return;
       }
 
-      setLessons(lessonsData || []);
+      const loadedLessons =
+        lessonsData || [];
+
+      setLessons(loadedLessons);
 
       // =========================
       // GET COMPLETED LESSONS
@@ -152,16 +183,22 @@ const CourseLearning = () => {
         error: progressError,
       } = await supabase
         .from('lesson_progress')
-        .select('*')
+        .select('lesson_id')
         .eq('user_id', user.id)
         .eq('course_id', courseId)
         .eq('completed', true);
 
       if (progressError) {
         console.error(
-          'Progress loading error:',
+          'Progress error:',
           progressError
         );
+
+        setMessage(
+          'Could not load your progress.'
+        );
+
+        return;
       }
 
       const completedIds =
@@ -169,15 +206,17 @@ const CourseLearning = () => {
           (item) => item.lesson_id
         ) || [];
 
-      setCompletedLessons(completedIds);
+      setCompletedLessons(
+        completedIds
+      );
 
       // =========================
-      // SELECT FIRST UNCOMPLETED LESSON
+      // SELECT FIRST UNCOMPLETED
       // =========================
 
-      if (lessonsData && lessonsData.length > 0) {
+      if (loadedLessons.length > 0) {
         const firstUncompleted =
-          lessonsData.find(
+          loadedLessons.find(
             (lesson) =>
               !completedIds.includes(
                 lesson.id
@@ -186,9 +225,10 @@ const CourseLearning = () => {
 
         setSelectedLesson(
           firstUncompleted ||
-            lessonsData[0]
+            loadedLessons[0]
         );
       }
+
     } catch (error) {
       console.error(
         'Unexpected error:',
@@ -198,9 +238,31 @@ const CourseLearning = () => {
       setMessage(
         'Something went wrong.'
       );
+
     } finally {
       setLoading(false);
     }
+  };
+
+  // =========================
+  // SELECT LESSON
+  // =========================
+
+  const handleSelectLesson = (
+    lesson
+  ) => {
+    setSelectedLesson(lesson);
+
+    setMessage('');
+
+    // Close menu on mobile
+    setShowLessons(false);
+
+    // Scroll to top
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
 
   // =========================
@@ -216,12 +278,13 @@ const CourseLearning = () => {
       return;
     }
 
-    // Already completed
-    if (
+    const alreadyCompleted =
       completedLessons.includes(
         selectedLesson.id
-      )
-    ) {
+      );
+
+    if (alreadyCompleted) {
+      goToNextLesson();
       return;
     }
 
@@ -230,58 +293,59 @@ const CourseLearning = () => {
       setMessage('');
 
       // =========================
-      // INSERT PROGRESS
+      // SAVE LESSON PROGRESS
       // =========================
 
       const {
-        data: progressData,
         error: progressError,
       } = await supabase
         .from('lesson_progress')
-        .insert({
-          user_id: user.id,
-          course_id: courseId,
-          lesson_id: selectedLesson.id,
-          completed: true,
-          completed_at:
-            new Date().toISOString(),
-        })
-        .select()
-        .single();
+        .upsert(
+          {
+            user_id: user.id,
+            course_id: courseId,
+            lesson_id:
+              selectedLesson.id,
+            completed: true,
+            completed_at:
+              new Date().toISOString(),
+          },
+          {
+            onConflict:
+              'user_id,course_id,lesson_id',
+          }
+        );
 
       if (progressError) {
-        // Duplicate lesson progress
-        if (
-          progressError.code === '23505'
-        ) {
-          setMessage(
-            'This lesson is already completed.'
-          );
-        } else {
-          console.error(
-            'Complete lesson error:',
-            progressError
-          );
+        console.error(
+          'Progress save error:',
+          progressError
+        );
 
-          setMessage(
-            'Could not save your progress.'
-          );
-        }
+        setMessage(
+          'Could not save your progress.'
+        );
 
         return;
       }
 
       // =========================
-      // UPDATE LOCAL COMPLETED LESSONS
+      // UPDATE LOCAL STATE
       // =========================
 
-      const updatedCompletedLessons = [
+      const updatedCompleted = [
         ...completedLessons,
         selectedLesson.id,
       ];
 
+      const uniqueCompleted = [
+        ...new Set(
+          updatedCompleted
+        ),
+      ];
+
       setCompletedLessons(
-        updatedCompletedLessons
+        uniqueCompleted
       );
 
       // =========================
@@ -292,7 +356,7 @@ const CourseLearning = () => {
         lessons.length;
 
       const completedCount =
-        updatedCompletedLessons.length;
+        uniqueCompleted.length;
 
       const newProgress =
         totalLessons > 0
@@ -309,7 +373,8 @@ const CourseLearning = () => {
 
       const {
         data: updatedEnrollment,
-        error: enrollmentUpdateError,
+        error:
+          enrollmentError,
       } = await supabase
         .from('enrollments')
         .update({
@@ -321,10 +386,10 @@ const CourseLearning = () => {
         .select()
         .single();
 
-      if (enrollmentUpdateError) {
+      if (enrollmentError) {
         console.error(
           'Enrollment update error:',
-          enrollmentUpdateError
+          enrollmentError
         );
       } else {
         setEnrollment(
@@ -336,9 +401,11 @@ const CourseLearning = () => {
       // COURSE COMPLETED
       // =========================
 
-      if (newProgress === 100) {
+      if (
+        newProgress === 100
+      ) {
         setMessage(
-          '🎉 Congratulations! You completed the entire course!'
+          '🎉 Congratulations! You completed this course!'
         );
 
         return;
@@ -360,7 +427,7 @@ const CourseLearning = () => {
 
       if (nextLesson) {
         setMessage(
-          `Lesson completed! Your progress is now ${newProgress}%.`
+          `Great job! Progress ${newProgress}%`
         );
 
         setTimeout(() => {
@@ -369,21 +436,94 @@ const CourseLearning = () => {
           );
 
           setMessage('');
-        }, 1200);
+
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+          });
+        }, 900);
       }
+
     } catch (error) {
       console.error(
-        'Unexpected completion error:',
+        'Complete error:',
         error
       );
 
       setMessage(
         'Something went wrong.'
       );
+
     } finally {
       setCompleting(false);
     }
   };
+
+  // =========================
+  // NEXT LESSON
+  // =========================
+
+  const goToNextLesson = () => {
+    if (!selectedLesson) {
+      return;
+    }
+
+    const currentIndex =
+      lessons.findIndex(
+        (lesson) =>
+          lesson.id ===
+          selectedLesson.id
+      );
+
+    const nextLesson =
+      lessons[currentIndex + 1];
+
+    if (nextLesson) {
+      setSelectedLesson(
+        nextLesson
+      );
+
+      setMessage('');
+
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  // =========================
+  // PREVIOUS LESSON
+  // =========================
+
+  const goToPreviousLesson =
+    () => {
+      if (!selectedLesson) {
+        return;
+      }
+
+      const currentIndex =
+        lessons.findIndex(
+          (lesson) =>
+            lesson.id ===
+            selectedLesson.id
+        );
+
+      if (currentIndex > 0) {
+        setSelectedLesson(
+          lessons[
+            currentIndex - 1
+          ]
+        );
+
+        setMessage('');
+
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        });
+      }
+    };
 
   // =========================
   // LOADING
@@ -398,17 +538,20 @@ const CourseLearning = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          textAlign: 'center',
         }}
       >
-        <div>
+        <div
+          style={{
+            textAlign: 'center',
+          }}
+        >
           <i
             className="fas fa-spinner fa-spin"
             style={{
               fontSize: '3rem',
               color: dm.heading,
             }}
-          ></i>
+          />
 
           <p
             style={{
@@ -416,12 +559,100 @@ const CourseLearning = () => {
               marginTop: '15px',
             }}
           >
-            Loading course...
+            Loading your course...
           </p>
         </div>
       </div>
     );
   }
+
+  // =========================
+  // NO LESSONS
+  // =========================
+
+  if (
+    !lessons.length
+  ) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: dm.bg,
+          padding: '60px 20px',
+          textAlign: 'center',
+        }}
+      >
+        <i
+          className="fas fa-book-open"
+          style={{
+            fontSize: '4rem',
+            color: dm.heading,
+            marginBottom: '20px',
+          }}
+        />
+
+        <h2
+          style={{
+            color: dm.heading,
+          }}
+        >
+          {course?.title}
+        </h2>
+
+        <p
+          style={{
+            color: dm.text,
+          }}
+        >
+          Lessons are not available yet.
+        </p>
+
+        <button
+          onClick={() =>
+            navigate('/courses')
+          }
+          style={{
+            marginTop: '20px',
+            padding: '12px 25px',
+            background: dm.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+          }}
+        >
+          Back to Courses
+        </button>
+      </div>
+    );
+  }
+
+  // =========================
+  // CURRENT LESSON
+  // =========================
+
+  const currentIndex =
+    lessons.findIndex(
+      (lesson) =>
+        lesson.id ===
+        selectedLesson?.id
+    );
+
+  const lessonNumber =
+    currentIndex + 1;
+
+  const progress =
+    enrollment?.progress || 0;
+
+  const isCompleted =
+    selectedLesson &&
+    completedLessons.includes(
+      selectedLesson.id
+    );
+
+  const isLastLesson =
+    currentIndex ===
+    lessons.length - 1;
 
   // =========================
   // PAGE
@@ -432,454 +663,679 @@ const CourseLearning = () => {
       style={{
         minHeight: '100vh',
         background: dm.bg,
-        padding: '40px 20px',
+        color: dm.text,
       }}
     >
-      <div
+
+      {/* =========================
+          TOP HEADER
+      ========================= */}
+
+      <header
         style={{
-          maxWidth: '1100px',
-          margin: '0 auto',
+          background: dm.card,
+          borderBottom:
+            `1px solid ${dm.border}`,
+          padding:
+            '18px 20px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
         }}
       >
-
-        {/* BACK */}
-
-        <button
-          onClick={() =>
-            navigate('/courses')
-          }
-          style={{
-            background: dm.primary,
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            marginBottom: '25px',
-          }}
-        >
-          <i className="fas fa-arrow-left"></i>{' '}
-          Back to Courses
-        </button>
-
-        {/* COURSE HEADER */}
-
         <div
           style={{
-            background: dm.card,
-            borderRadius: '15px',
-            padding: '30px',
-            marginBottom: '25px',
-            boxShadow:
-              '0 5px 20px rgba(0,0,0,0.08)',
+            maxWidth: '1100px',
+            margin: '0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent:
+              'space-between',
+            gap: '20px',
           }}
         >
-          <h1
-            style={{
-              color: dm.heading,
-              marginBottom: '10px',
-            }}
-          >
-            <i className="fas fa-graduation-cap"></i>{' '}
-            {course?.title}
-          </h1>
-
-          <p
-            style={{
-              color: dm.text,
-            }}
-          >
-            Continue your learning journey.
-          </p>
-
-          {/* PROGRESS */}
 
           <div
             style={{
-              marginTop: '25px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '15px',
+              minWidth: 0,
             }}
           >
-            <div
+            <button
+              onClick={() =>
+                navigate('/courses')
+              }
               style={{
-                display: 'flex',
-                justifyContent:
-                  'space-between',
-                marginBottom: '8px',
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                border: 'none',
+                background:
+                  dm.primary,
+                color: 'white',
+                cursor: 'pointer',
+                flexShrink: 0,
               }}
             >
-              <span
-                style={{
-                  color: dm.text,
-                  fontWeight: '600',
-                }}
-              >
-                Your Progress
-              </span>
-
-              <span
-                style={{
-                  color: dm.success,
-                  fontWeight: '700',
-                }}
-              >
-                {enrollment?.progress || 0}%
-              </span>
-            </div>
+              <i className="fas fa-arrow-left" />
+            </button>
 
             <div
               style={{
-                height: '12px',
-                background: darkMode
+                minWidth: 0,
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  color: dm.heading,
+                  fontSize:
+                    '1.1rem',
+                  whiteSpace:
+                    'nowrap',
+                  overflow:
+                    'hidden',
+                  textOverflow:
+                    'ellipsis',
+                }}
+              >
+                {course?.title}
+              </h2>
+
+              <span
+                style={{
+                  color:
+                    dm.subtext,
+                  fontSize:
+                    '0.85rem',
+                }}
+              >
+                Lesson {lessonNumber}{' '}
+                of {lessons.length}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() =>
+              setShowLessons(
+                !showLessons
+              )
+            }
+            style={{
+              padding:
+                '10px 16px',
+              background:
+                dm.primary,
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              flexShrink: 0,
+            }}
+          >
+            <i className="fas fa-list" />{' '}
+            Lessons
+          </button>
+
+        </div>
+      </header>
+
+      {/* =========================
+          PROGRESS BAR
+      ========================= */}
+
+      <div
+        style={{
+          background:
+            dm.card,
+          borderBottom:
+            `1px solid ${dm.border}`,
+        }}
+      >
+        <div
+          style={{
+            maxWidth:
+              '1100px',
+            margin:
+              '0 auto',
+            padding:
+              '12px 20px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent:
+                'space-between',
+              marginBottom:
+                '6px',
+              fontSize:
+                '0.85rem',
+            }}
+          >
+            <span
+              style={{
+                color:
+                  dm.subtext,
+              }}
+            >
+              Course Progress
+            </span>
+
+            <strong
+              style={{
+                color:
+                  dm.success,
+              }}
+            >
+              {progress}%
+            </strong>
+          </div>
+
+          <div
+            style={{
+              height: '8px',
+              background:
+                darkMode
                   ? '#2a2d3d'
                   : '#e5e7eb',
-                borderRadius: '10px',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  width: `${
-                    enrollment?.progress || 0
-                  }%`,
-                  height: '100%',
-                  background:
-                    'linear-gradient(90deg, #003366, #f0a500)',
-                  transition:
-                    'width 0.5s ease',
-                }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        {/* MAIN */}
-
-        <div
-          className="learning-layout"
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              '280px 1fr',
-            gap: '25px',
-          }}
-        >
-
-          {/* LESSONS */}
-
-          <div
-            style={{
-              background: dm.card,
-              borderRadius: '15px',
-              padding: '20px',
-              boxShadow:
-                '0 5px 20px rgba(0,0,0,0.08)',
-              height: 'fit-content',
+              borderRadius:
+                '10px',
+              overflow:
+                'hidden',
             }}
           >
-            <h3
+            <div
               style={{
-                color: dm.heading,
-                marginBottom: '20px',
+                width:
+                  `${progress}%`,
+                height: '100%',
+                background:
+                  'linear-gradient(90deg, #003366, #f0a500)',
+                transition:
+                  'width 0.5s ease',
               }}
-            >
-              <i className="fas fa-list"></i>{' '}
-              Course Lessons
-            </h3>
-
-            {lessons.length === 0 ? (
-              <p
-                style={{
-                  color: dm.subtext,
-                }}
-              >
-                No lessons available yet.
-              </p>
-            ) : (
-              lessons.map(
-                (lesson, index) => {
-                  const isCompleted =
-                    completedLessons.includes(
-                      lesson.id
-                    );
-
-                  const isSelected =
-                    selectedLesson?.id ===
-                    lesson.id;
-
-                  return (
-                    <button
-                      key={lesson.id}
-                      onClick={() =>
-                        setSelectedLesson(
-                          lesson
-                        )
-                      }
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '15px',
-                        marginBottom: '10px',
-                        borderRadius: '10px',
-                        border: isSelected
-                          ? `2px solid ${dm.primary}`
-                          : `1px solid ${dm.border}`,
-                        background:
-                          isSelected
-                            ? darkMode
-                              ? '#2a3580'
-                              : '#eef4ff'
-                            : 'transparent',
-                        color: dm.text,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: '10px',
-                          alignItems:
-                            'center',
-                        }}
-                      >
-                        <span
-                          style={{
-                            minWidth: '30px',
-                            height: '30px',
-                            borderRadius:
-                              '50%',
-                            display: 'flex',
-                            alignItems:
-                              'center',
-                            justifyContent:
-                              'center',
-                            background:
-                              isCompleted
-                                ? dm.success
-                                : dm.primary,
-                            color: 'white',
-                            fontSize:
-                              '0.8rem',
-                          }}
-                        >
-                          {isCompleted ? (
-                            <i className="fas fa-check"></i>
-                          ) : (
-                            index + 1
-                          )}
-                        </span>
-
-                        <span
-                          style={{
-                            fontWeight: '600',
-                          }}
-                        >
-                          {lesson.title}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                }
-              )
-            )}
-          </div>
-
-          {/* LESSON CONTENT */}
-
-          <div
-            style={{
-              background: dm.card,
-              borderRadius: '15px',
-              padding: '35px',
-              boxShadow:
-                '0 5px 20px rgba(0,0,0,0.08)',
-              minHeight: '450px',
-            }}
-          >
-            {selectedLesson ? (
-              <>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent:
-                      'space-between',
-                    alignItems: 'center',
-                    gap: '15px',
-                    marginBottom: '20px',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <h2
-                    style={{
-                      color: dm.heading,
-                      margin: 0,
-                    }}
-                  >
-                    {selectedLesson.title}
-                  </h2>
-
-                  {completedLessons.includes(
-                    selectedLesson.id
-                  ) && (
-                    <span
-                      style={{
-                        color: dm.success,
-                        fontWeight: '700',
-                      }}
-                    >
-                      <i className="fas fa-check-circle"></i>{' '}
-                      Completed
-                    </span>
-                  )}
-                </div>
-
-                {selectedLesson.description && (
-                  <p
-                    style={{
-                      color: dm.subtext,
-                      fontSize: '1.05rem',
-                      marginBottom: '25px',
-                    }}
-                  >
-                    {selectedLesson.description}
-                  </p>
-                )}
-
-                <div
-                  style={{
-                    color: dm.text,
-                    lineHeight: '1.8',
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-                  {selectedLesson.content}
-                </div>
-
-                {/* COMPLETE */}
-
-                <div
-                  style={{
-                    marginTop: '35px',
-                    paddingTop: '25px',
-                    borderTop:
-                      `1px solid ${dm.border}`,
-                  }}
-                >
-                  {!completedLessons.includes(
-                    selectedLesson.id
-                  ) ? (
-                    <button
-                      onClick={
-                        handleCompleteLesson
-                      }
-                      disabled={completing}
-                      style={{
-                        width: '100%',
-                        padding: '15px',
-                        background:
-                          completing
-                            ? '#888'
-                            : 'linear-gradient(90deg, #003366, #005599)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '10px',
-                        fontSize: '1rem',
-                        fontWeight: '700',
-                        cursor:
-                          completing
-                            ? 'not-allowed'
-                            : 'pointer',
-                      }}
-                    >
-                      <i
-                        className={
-                          completing
-                            ? 'fas fa-spinner fa-spin'
-                            : 'fas fa-check'
-                        }
-                      ></i>{' '}
-                      {completing
-                        ? 'Saving...'
-                        : 'Mark as Complete'}
-                    </button>
-                  ) : (
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        padding: '15px',
-                        background:
-                          darkMode
-                            ? '#0d2318'
-                            : '#f0fff4',
-                        color: dm.success,
-                        borderRadius: '10px',
-                        fontWeight: '700',
-                      }}
-                    >
-                      <i className="fas fa-check-circle"></i>{' '}
-                      Lesson Completed
-                    </div>
-                  )}
-                </div>
-
-                {/* MESSAGE */}
-
-                {message && (
-                  <p
-                    style={{
-                      textAlign: 'center',
-                      color:
-                        message.includes(
-                          'Could not'
-                        ) ||
-                        message.includes(
-                          'Something'
-                        )
-                          ? dm.danger
-                          : dm.success,
-                      fontWeight: '600',
-                      marginTop: '20px',
-                    }}
-                  >
-                    {message}
-                  </p>
-                )}
-              </>
-            ) : (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '80px 20px',
-                  color: dm.subtext,
-                }}
-              >
-                <i
-                  className="fas fa-book-open"
-                  style={{
-                    fontSize: '3rem',
-                    marginBottom: '15px',
-                  }}
-                ></i>
-
-                <p>
-                  Select a lesson to start learning.
-                </p>
-              </div>
-            )}
+            />
           </div>
         </div>
       </div>
 
-      {/* RESPONSIVE */}
+      {/* =========================
+          LESSON MENU
+      ========================= */}
+
+      {showLessons && (
+        <div
+          style={{
+            position:
+              'fixed',
+            top: 0,
+            right: 0,
+            width:
+              '320px',
+            maxWidth:
+              '90%',
+            height:
+              '100vh',
+            background:
+              dm.card,
+            boxShadow:
+              '-10px 0 30px rgba(0,0,0,0.2)',
+            zIndex: 1000,
+            padding:
+              '25px',
+            overflowY:
+              'auto',
+            animation:
+              'menuSlide 0.3s ease',
+          }}
+        >
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent:
+                'space-between',
+              alignItems:
+                'center',
+              marginBottom:
+                '25px',
+            }}
+          >
+            <h2
+              style={{
+                color:
+                  dm.heading,
+                margin: 0,
+              }}
+            >
+              Lessons
+            </h2>
+
+            <button
+              onClick={() =>
+                setShowLessons(
+                  false
+                )
+              }
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius:
+                  '50%',
+                border: 'none',
+                background:
+                  dm.primary,
+                color: 'white',
+                cursor:
+                  'pointer',
+              }}
+            >
+              <i className="fas fa-times" />
+            </button>
+          </div>
+
+          {lessons.map(
+            (lesson, index) => {
+              const done =
+                completedLessons.includes(
+                  lesson.id
+                );
+
+              const active =
+                selectedLesson?.id ===
+                lesson.id;
+
+              return (
+                <button
+                  key={
+                    lesson.id
+                  }
+                  onClick={() =>
+                    handleSelectLesson(
+                      lesson
+                    )
+                  }
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems:
+                      'center',
+                    gap: '12px',
+                    padding:
+                      '14px',
+                    marginBottom:
+                      '10px',
+                    borderRadius:
+                      '10px',
+                    border:
+                      active
+                        ? `2px solid ${dm.primary}`
+                        : `1px solid ${dm.border}`,
+                    background:
+                      active
+                        ? dm.lessonActive
+                        : 'transparent',
+                    color:
+                      dm.text,
+                    cursor:
+                      'pointer',
+                    textAlign:
+                      'left',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius:
+                        '50%',
+                      background:
+                        done
+                          ? dm.success
+                          : dm.primary,
+                      color: 'white',
+                      display:
+                        'flex',
+                      alignItems:
+                        'center',
+                      justifyContent:
+                        'center',
+                      flexShrink: 0,
+                      fontSize:
+                        '0.8rem',
+                    }}
+                  >
+                    {done ? (
+                      <i className="fas fa-check" />
+                    ) : (
+                      index + 1
+                    )}
+                  </span>
+
+                  <span
+                    style={{
+                      fontWeight:
+                        '600',
+                    }}
+                  >
+                    {lesson.title}
+                  </span>
+                </button>
+              );
+            }
+          )}
+
+        </div>
+      )}
+
+      {/* =========================
+          MAIN LESSON
+      ========================= */}
+
+      <main
+        style={{
+          maxWidth:
+            '850px',
+          margin:
+            '0 auto',
+          padding:
+            '50px 20px 80px',
+        }}
+      >
+
+        {/* LESSON NUMBER */}
+
+        <div
+          style={{
+            color:
+              dm.subtext,
+            fontSize:
+              '0.9rem',
+            marginBottom:
+              '12px',
+          }}
+        >
+          Lesson {lessonNumber}{' '}
+          of {lessons.length}
+        </div>
+
+        {/* TITLE */}
+
+        <h1
+          style={{
+            color:
+              dm.heading,
+            fontSize:
+              'clamp(1.8rem, 5vw, 3rem)',
+            lineHeight:
+              '1.2',
+            marginBottom:
+              '15px',
+          }}
+        >
+          {selectedLesson?.title}
+        </h1>
+
+        {/* DESCRIPTION */}
+
+        {selectedLesson?.description && (
+          <p
+            style={{
+              color:
+                dm.subtext,
+              fontSize:
+                '1.1rem',
+              lineHeight:
+                '1.7',
+              marginBottom:
+                '35px',
+            }}
+          >
+            {
+              selectedLesson.description
+            }
+          </p>
+        )}
+
+        {/* CONTENT */}
+
+        <article
+          style={{
+            background:
+              dm.card,
+            borderRadius:
+              '16px',
+            padding:
+              'clamp(20px, 5vw, 45px)',
+            boxShadow:
+              '0 5px 25px rgba(0,0,0,0.08)',
+            color:
+              dm.text,
+            fontSize:
+              '1.05rem',
+            lineHeight:
+              '1.9',
+            whiteSpace:
+              'pre-wrap',
+            minHeight:
+              '300px',
+          }}
+        >
+          {selectedLesson?.content}
+        </article>
+
+        {/* STATUS */}
+
+        {isCompleted && (
+          <div
+            style={{
+              marginTop:
+                '25px',
+              padding:
+                '15px',
+              background:
+                darkMode
+                  ? '#0d2318'
+                  : '#f0fff4',
+              color:
+                dm.success,
+              borderRadius:
+                '10px',
+              textAlign:
+                'center',
+              fontWeight:
+                '700',
+            }}
+          >
+            <i className="fas fa-check-circle" />{' '}
+            You have completed this lesson.
+          </div>
+        )}
+
+        {/* MESSAGE */}
+
+        {message && (
+          <div
+            style={{
+              marginTop:
+                '20px',
+              padding:
+                '15px',
+              borderRadius:
+                '10px',
+              textAlign:
+                'center',
+              background:
+                message.includes(
+                  'Could not'
+                ) ||
+                message.includes(
+                  'Something'
+                )
+                  ? darkMode
+                    ? '#351616'
+                    : '#fff1f2'
+                  : darkMode
+                    ? '#0d2318'
+                    : '#f0fff4',
+              color:
+                message.includes(
+                  'Could not'
+                ) ||
+                message.includes(
+                  'Something'
+                )
+                  ? dm.danger
+                  : dm.success,
+              fontWeight:
+                '600',
+            }}
+          >
+            {message}
+          </div>
+        )}
+
+        {/* =========================
+            NAVIGATION
+        ========================= */}
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent:
+              'space-between',
+            gap: '15px',
+            marginTop:
+              '35px',
+            flexWrap:
+              'wrap',
+          }}
+        >
+
+          <button
+            onClick={
+              goToPreviousLesson
+            }
+            disabled={
+              currentIndex <= 0
+            }
+            style={{
+              flex: 1,
+              minWidth:
+                '180px',
+              padding:
+                '15px',
+              background:
+                currentIndex <= 0
+                  ? '#999'
+                  : dm.primary,
+              color: 'white',
+              border: 'none',
+              borderRadius:
+                '10px',
+              cursor:
+                currentIndex <= 0
+                  ? 'not-allowed'
+                  : 'pointer',
+              fontWeight:
+                '700',
+            }}
+          >
+            <i className="fas fa-arrow-left" />{' '}
+            Previous Lesson
+          </button>
+
+          <button
+            onClick={
+              handleCompleteLesson
+            }
+            disabled={
+              completing
+            }
+            style={{
+              flex: 2,
+              minWidth:
+                '220px',
+              padding:
+                '15px',
+              background:
+                completing
+                  ? '#888'
+                  : isLastLesson &&
+                      isCompleted
+                    ? dm.success
+                    : 'linear-gradient(90deg, #003366, #005599)',
+              color: 'white',
+              border: 'none',
+              borderRadius:
+                '10px',
+              cursor:
+                completing
+                  ? 'not-allowed'
+                  : 'pointer',
+              fontWeight:
+                '700',
+              fontSize:
+                '1rem',
+            }}
+          >
+            <i
+              className={
+                completing
+                  ? 'fas fa-spinner fa-spin'
+                  : isLastLesson &&
+                      isCompleted
+                    ? 'fas fa-check-circle'
+                    : 'fas fa-check'
+              }
+            />{' '}
+            {completing
+              ? 'Saving...'
+              : isLastLesson &&
+                  isCompleted
+                ? 'Course Completed'
+                : isCompleted
+                  ? 'Next Lesson'
+                  : isLastLesson
+                    ? 'Complete Course'
+                    : 'Mark as Complete & Next'}
+          </button>
+
+        </div>
+
+      </main>
+
+      {/* =========================
+          ANIMATION
+      ========================= */}
 
       <style>
         {`
-          @media (max-width: 768px) {
-            .learning-layout {
-              grid-template-columns: 1fr !important;
+          @keyframes menuSlide {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+
+          @media (max-width: 600px) {
+            main {
+              padding-top: 35px !important;
             }
           }
         `}
       </style>
+
     </div>
   );
 };
