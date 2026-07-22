@@ -638,3 +638,217 @@ width: 100%;
 font-size: 1.8rem;
 }
 }
+/* ===========================
+Home Page Animations
+=========================== */
+
+.home-page {
+opacity: 0;
+transition: opacity 0.8s ease;
+}
+
+.home-page.home-visible {
+opacity: 1;
+}
+
+/* Hero Animation */
+
+.home-hero-content {
+animation: homeHeroEnter 1s ease forwards;
+}
+
+.home-hero-icon {
+animation: homeIconFloat 3s ease-in-out infinite;
+}
+
+@keyframes homeHeroEnter {
+0% {
+opacity: 0;
+transform: translateY(40px);
+}
+
+100% {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+@keyframes homeIconFloat {
+0%,
+100% {
+transform: translateY(0);
+}
+
+50% {
+transform: translateY(-10px);
+}
+}
+
+/* Start Learning Button */
+
+.home-start-button {
+transition:
+transform 0.3s ease,
+box-shadow 0.3s ease,
+background 0.3s ease;
+}
+
+.home-start-button:hover {
+transform: translateY(-5px) scale(1.03);
+box-shadow: 0 10px 25px rgba(240, 165, 0, 0.35);
+}
+
+/* Stats */
+
+.home-stat-card {
+opacity: 0;
+animation: homeStatsEnter 0.7s ease forwards;
+transition:
+transform 0.3s ease,
+box-shadow 0.3s ease;
+}
+
+.home-stat-card:hover {
+transform: translateY(-8px);
+}
+
+.home-stat-icon {
+font-size: 1.8rem;
+color: #003366;
+margin-bottom: 8px;
+}
+
+.home-stat-card h2 {
+color: #f0a500;
+font-size: 2.5rem;
+margin-bottom: 5px;
+}
+
+@keyframes homeStatsEnter {
+0% {
+opacity: 0;
+transform: translateY(30px);
+}
+
+100% {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+/* Why Us */
+
+.home-why-us h1 {
+animation: homeTitleEnter 0.8s ease forwards;
+}
+
+@keyframes homeTitleEnter {
+0% {
+opacity: 0;
+transform: translateY(25px);
+}
+
+100% {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+/* Feature Cards */
+
+.home-feature-card {
+opacity: 0;
+animation: homeFeatureEnter 0.7s ease forwards;
+transition:
+transform 0.35s ease,
+box-shadow 0.35s ease;
+}
+
+.home-feature-card:hover {
+transform: translateY(-12px);
+box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15) !important;
+}
+
+.home-feature-icon {
+transition:
+transform 0.4s ease,
+color 0.3s ease;
+}
+
+.home-feature-card:hover .home-feature-icon {
+transform: scale(1.15) rotate(5deg);
+}
+
+@keyframes homeFeatureEnter {
+0% {
+opacity: 0;
+transform: translateY(40px);
+}
+
+100% {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+/* ===========================
+Home Layout
+=========================== */
+
+.home-hero {
+overflow: hidden;
+}
+
+.home-stats {
+padding: 60px 20px;
+text-align: center;
+transition: background 0.3s ease;
+}
+
+.home-stats-container {
+display: flex;
+justify-content: center;
+gap: 60px;
+flex-wrap: wrap;
+}
+
+.home-why-us {
+padding: 80px 40px;
+text-align: center;
+transition: background 0.3s ease;
+}
+
+.home-features-container {
+display: flex;
+justify-content: center;
+gap: 30px;
+flex-wrap: wrap;
+}
+
+/* ===========================
+Mobile
+=========================== */
+
+@media (max-width: 768px) {
+.home-stats-container {
+gap: 35px;
+}
+
+.home-why-us {
+padding: 60px 20px;
+}
+}
+
+@media (max-width: 480px) {
+.home-stats-container {
+gap: 25px;
+}
+
+.home-hero-content h1 {
+font-size: 1.8rem;
+}
+
+.home-feature-card {
+width: 100% !important;
+}
+}
