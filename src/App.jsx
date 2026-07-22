@@ -4,7 +4,6 @@ import Login from './PAGES/Login'
 import SignUp from './PAGES/SignUp'
 import Home from './PAGES/Home'
 import Courses from './PAGES/Courses'
-import CourseLearning from './PAGES/CourseLearning'
 import Dashboard from './PAGES/Dashboard'
 import Profile from './PAGES/Profile'
 import Contact from './PAGES/Contact'
@@ -25,10 +24,7 @@ function App() {
       <BrowserRouter>
         <Routes>
 
-          {/* =========================
-              PUBLIC PAGES
-          ========================= */}
-
+          {/* PUBLIC */}
           <Route
             path="/"
             element={<Login />}
@@ -39,10 +35,7 @@ function App() {
             element={<SignUp />}
           />
 
-          {/* =========================
-              HOME
-          ========================= */}
-
+          {/* HOME */}
           <Route
             path="/home"
             element={
@@ -56,10 +49,7 @@ function App() {
             }
           />
 
-          {/* =========================
-              COURSES
-          ========================= */}
-
+          {/* COURSES */}
           <Route
             path="/courses"
             element={
@@ -73,29 +63,7 @@ function App() {
             }
           />
 
-          {/* =========================
-              COURSE LEARNING
-              Example:
-              /courses/123/learn
-          ========================= */}
-
-          <Route
-            path="/courses/:courseId/learn"
-            element={
-              <ProtectedRoute>
-                <>
-                  <Navbar />
-                  <CourseLearning />
-                  <Footer />
-                </>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* =========================
-              DASHBOARD
-          ========================= */}
-
+          {/* DASHBOARD */}
           <Route
             path="/dashboard"
             element={
@@ -109,10 +77,7 @@ function App() {
             }
           />
 
-          {/* =========================
-              PROFILE
-          ========================= */}
-
+          {/* PROFILE */}
           <Route
             path="/profile"
             element={
@@ -126,10 +91,7 @@ function App() {
             }
           />
 
-          {/* =========================
-              CONTACT
-          ========================= */}
-
+          {/* CONTACT */}
           <Route
             path="/contact"
             element={
@@ -143,10 +105,7 @@ function App() {
             }
           />
 
-          {/* =========================
-              SESSIONS
-          ========================= */}
-
+          {/* SESSIONS */}
           <Route
             path="/sessions"
             element={
@@ -160,10 +119,7 @@ function App() {
             }
           />
 
-          {/* =========================
-              ADMIN
-          ========================= */}
-
+          {/* ADMIN */}
           <Route
             path="/admin"
             element={
@@ -174,10 +130,6 @@ function App() {
           />
 
         </Routes>
-
-        {/* =========================
-            AI ASSISTANT
-        ========================= */}
 
         <AIAssistant />
 
