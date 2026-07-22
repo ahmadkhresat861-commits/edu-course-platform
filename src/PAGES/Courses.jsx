@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useLang } from '../LanguageContext';
 import '../App.css';
@@ -96,6 +97,7 @@ const StarRating = ({ rating, onRate }) => (
 
 const Courses = () => {
   const { darkMode } = useLang();
+  const navigate = useNavigate();
 
   const dm = {
     bg: darkMode ? '#0f1117' : '#f5f7fa',
@@ -113,6 +115,7 @@ const Courses = () => {
     catInactive: darkMode ? '#a0b4ff' : '#003366',
     reviewBg: darkMode ? '#161a28' : 'white',
     successBg: darkMode ? '#0d2318' : '#f0fff4',
+    errorBg: darkMode ? '#351b1b' : '#fff1f1',
     shadow: darkMode
       ? '0 4px 20px rgba(0,0,0,0.4)'
       : '0 4px 15px rgba(0,0,0,0.08)',
@@ -124,16 +127,45 @@ const Courses = () => {
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
+
   const [reviews, setReviews] = useState([]);
   const [myRating, setMyRating] = useState(0);
   const [comment, setComment] = useState('');
+
   const [user, setUser] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
-  // Animation state
+  // Enrollment states
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollLoading, setEnrollLoading] = useState(false);
+  const [enrollMessage, setEnrollMessage] = useState('');
+  const [enrollError, setEnrollError] = useState('');
+
+  // Animation
   const [pageVisible, setPageVisible] = useState(false);
   const [detailsVisible, setDetailsVisible] = useState(false);
+
+  // ============================================================
+  // GET CURRENT USER
+  // ============================================================
+
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+
+      setUser(user);
+    };
+
+    getUser();
+  }, []);
+
+  // ============================================================
+  // PAGE ANIMATION
+  // ============================================================
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -143,56 +175,184 @@ const Courses = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
-  }, []);
+  // ============================================================
+  // WHEN COURSE SELECTED
+  // ============================================================
 
   useEffect(() => {
-    if (selected) {
-      setDetailsVisible(false);
+    if (!selected) return;
 
-      const timer = setTimeout(() => {
-        setDetailsVisible(true);
-      }, 100);
+    setDetailsVisible(false);
+    setIsEnrolled(false);
+    setEnrollMessage('');
+    setEnrollError('');
 
-      fetchReviews();
+    const timer = setTimeout(() => {
+      setDetailsVisible(true);
+    }, 100);
 
-      return () => clearTimeout(timer);
-    }
+    fetchReviews();
+    checkEnrollment();
+
+    return () => clearTimeout(timer);
   }, [selected]);
+
+  // ============================================================
+  // FETCH REVIEWS
+  // ============================================================
 
   const fetchReviews = async () => {
     setLoading(true);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('reviews')
       .select('*')
       .eq('course_id', selected.id);
 
-    if (data) {
+    if (!error && data) {
       setReviews(data);
     }
 
     setLoading(false);
   };
 
-  const handleSubmitReview = async () => {
-    if (!myRating || !user) return;
+  // ============================================================
+  // CHECK IF USER IS ENROLLED
+  // ============================================================
 
-    await supabase
-      .from('reviews')
-      .upsert({
-        course_id: selected.id,
+  const checkEnrollment = async () => {
+    if (!user || !selected) {
+      setIsEnrolled(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select('id, progress, completed')
+      .eq('user_id', user.id)
+      .eq('course_id', selected.id)
+      .maybeSingle();
+
+    if (!error && data) {
+      setIsEnrolled(true);
+    } else {
+      setIsEnrolled(false);
+    }
+  };
+
+  // ============================================================
+  // ENROLL IN COURSE
+  // ============================================================
+
+  const handleEnroll = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (!selected) return;
+
+    setEnrollLoading(true);
+    setEnrollMessage('');
+    setEnrollError('');
+
+    // Check again before inserting
+    const { data: existingEnrollment, error: checkError } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('course_id', selected.id)
+      .maybeSingle();
+
+    if (checkError) {
+      setEnrollError('Unable to check enrollment. Please try again.');
+      setEnrollLoading(false);
+      return;
+    }
+
+    if (existingEnrollment) {
+      setIsEnrolled(true);
+      setEnrollMessage('You are already enrolled in this course.');
+      setEnrollLoading(false);
+      return;
+    }
+
+    // Create enrollment
+    const { error } = await supabase
+      .from('enrollments')
+      .insert({
         user_id: user.id,
-        rating: myRating,
-        comment,
+        course_id: selected.id,
+        progress: 0,
+        completed: false
       });
 
-    setSubmitted(true);
-    fetchReviews();
+    if (error) {
+      console.error('Enrollment Error:', error);
+
+      if (error.code === '23505') {
+        setIsEnrolled(true);
+        setEnrollMessage('You are already enrolled in this course.');
+      } else {
+        setEnrollError(
+          'Something went wrong while enrolling. Please try again.'
+        );
+      }
+
+      setEnrollLoading(false);
+      return;
+    }
+
+    setIsEnrolled(true);
+    setEnrollMessage(
+      `Successfully enrolled in ${selected.title}! 🎉`
+    );
+
+    setEnrollLoading(false);
   };
+
+  // ============================================================
+  // SUBMIT REVIEW
+  // ============================================================
+
+  const handleSubmitReview = async () => {
+    if (!myRating) return;
+
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await supabase
+      .from('reviews')
+      .upsert(
+        {
+          course_id: selected.id,
+          user_id: user.id,
+          rating: myRating,
+          comment,
+        },
+        {
+          onConflict: 'course_id,user_id'
+        }
+      );
+
+    if (error) {
+      console.error(error);
+      setLoading(false);
+      return;
+    }
+
+    setSubmitted(true);
+    await fetchReviews();
+    setLoading(false);
+  };
+
+  // ============================================================
+  // BACK
+  // ============================================================
 
   const handleBack = () => {
     setDetailsVisible(false);
@@ -203,8 +363,15 @@ const Courses = () => {
       setSubmitted(false);
       setMyRating(0);
       setComment('');
+      setIsEnrolled(false);
+      setEnrollMessage('');
+      setEnrollError('');
     }, 250);
   };
+
+  // ============================================================
+  // AVERAGE RATING
+  // ============================================================
 
   const avgRating = reviews.length
     ? (
@@ -212,6 +379,10 @@ const Courses = () => {
         reviews.length
       ).toFixed(1)
     : null;
+
+  // ============================================================
+  // FILTER COURSES
+  // ============================================================
 
   const filtered = courses.filter(c =>
     (category === 'All' || c.category === category) &&
@@ -272,7 +443,7 @@ const Courses = () => {
         <div
           style={{
             textAlign: 'center',
-            marginBottom: '40px',
+            marginBottom: '25px',
             animation: 'slideUp 0.7s ease both'
           }}
         >
@@ -320,7 +491,165 @@ const Courses = () => {
           )}
         </div>
 
-        {/* Reviews */}
+        {/* =====================================================
+            ENROLLMENT CARD
+        ====================================================== */}
+
+        <div
+          style={{
+            background: dm.reviewBg,
+            borderRadius: '12px',
+            padding: '25px',
+            boxShadow: dm.shadow,
+            marginBottom: '30px',
+            textAlign: 'center',
+            animation: 'slideUp 0.7s 0.1s ease both'
+          }}
+        >
+          {!isEnrolled ? (
+            <>
+              <h2
+                style={{
+                  color: dm.heading,
+                  marginBottom: '10px'
+                }}
+              >
+                <i className="fas fa-graduation-cap"></i>{' '}
+                Start Learning
+              </h2>
+
+              <p
+                style={{
+                  color: dm.text,
+                  marginBottom: '20px'
+                }}
+              >
+                Enroll now and start your learning journey.
+              </p>
+
+              <button
+                onClick={handleEnroll}
+                disabled={enrollLoading}
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  background: enrollLoading
+                    ? '#888'
+                    : 'linear-gradient(90deg, #003366, #005599)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: '700',
+                  fontSize: '1rem',
+                  cursor: enrollLoading
+                    ? 'not-allowed'
+                    : 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 8px 20px rgba(0,51,102,0.25)'
+                }}
+              >
+                {enrollLoading ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>{' '}
+                    Enrolling...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-plus-circle"></i>{' '}
+                    Enroll Now
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
+            <>
+              <div
+                style={{
+                  animation: 'successPop 0.6s ease both'
+                }}
+              >
+                <i
+                  className="fas fa-check-circle"
+                  style={{
+                    fontSize: '3rem',
+                    color: '#10b981',
+                    marginBottom: '10px'
+                  }}
+                ></i>
+
+                <h2 style={{ color: dm.heading }}>
+                  You're Enrolled! 🎉
+                </h2>
+
+                <p
+                  style={{
+                    color: dm.text,
+                    marginBottom: '20px'
+                  }}
+                >
+                  You can now continue your learning journey.
+                </p>
+
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <i className="fas fa-play"></i>{' '}
+                  Go to My Dashboard
+                </button>
+              </div>
+            </>
+          )}
+
+          {enrollMessage && (
+            <div
+              style={{
+                marginTop: '15px',
+                padding: '12px',
+                borderRadius: '8px',
+                background: dm.successBg,
+                color: '#10b981',
+                fontWeight: '600',
+                animation: 'fadeIn 0.5s ease both'
+              }}
+            >
+              {enrollMessage}
+            </div>
+          )}
+
+          {enrollError && (
+            <div
+              style={{
+                marginTop: '15px',
+                padding: '12px',
+                borderRadius: '8px',
+                background: dm.errorBg,
+                color: '#ef4444',
+                fontWeight: '600',
+                animation: 'fadeIn 0.5s ease both'
+              }}
+            >
+              <i className="fas fa-exclamation-circle"></i>{' '}
+              {enrollError}
+            </div>
+          )}
+        </div>
+
+        {/* =====================================================
+            REVIEWS
+        ====================================================== */}
+
         <div
           style={{
             background: dm.reviewBg,
@@ -347,7 +676,8 @@ const Courses = () => {
                 textAlign: 'center'
               }}
             >
-              <i className="fas fa-spinner fa-spin"></i> Loading...
+              <i className="fas fa-spinner fa-spin"></i>{' '}
+              Loading...
             </p>
           ) : reviews.length === 0 ? (
             <p
@@ -386,7 +716,10 @@ const Courses = () => {
           )}
         </div>
 
-        {/* Add Review */}
+        {/* =====================================================
+            ADD REVIEW
+        ====================================================== */}
+
         {!submitted ? (
           <div
             style={{
@@ -439,11 +772,14 @@ const Courses = () => {
                 color: dm.inputColor,
                 resize: 'vertical',
                 boxSizing: 'border-box',
-                transition: 'border 0.3s ease, box-shadow 0.3s ease'
+                transition:
+                  'border 0.3s ease, box-shadow 0.3s ease'
               }}
               onFocus={(e) => {
                 e.currentTarget.style.boxShadow =
-                  `0 0 0 3px ${darkMode ? '#2a3580' : '#dce7f5'}`;
+                  `0 0 0 3px ${
+                    darkMode ? '#2a3580' : '#dce7f5'
+                  }`;
               }}
               onBlur={(e) => {
                 e.currentTarget.style.boxShadow = 'none';
@@ -452,7 +788,7 @@ const Courses = () => {
 
             <button
               onClick={handleSubmitReview}
-              disabled={!myRating}
+              disabled={!myRating || loading}
               style={{
                 width: '100%',
                 padding: '14px',
@@ -469,21 +805,9 @@ const Courses = () => {
                 transition:
                   'transform 0.3s ease, box-shadow 0.3s ease'
               }}
-              onMouseEnter={(e) => {
-                if (myRating) {
-                  e.currentTarget.style.transform =
-                    'translateY(-3px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 8px 20px rgba(0,0,0,0.2)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform =
-                  'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
             >
-              <i className="fas fa-paper-plane"></i> Submit Review
+              <i className="fas fa-paper-plane"></i>{' '}
+              {loading ? 'Submitting...' : 'Submit Review'}
             </button>
           </div>
         ) : (
@@ -511,6 +835,38 @@ const Courses = () => {
             </h3>
           </div>
         )}
+
+        {/* Local Animation Styles */}
+        <style>
+          {`
+            @keyframes successPop {
+              0% {
+                opacity: 0;
+                transform: scale(0.8);
+              }
+
+              70% {
+                transform: scale(1.05);
+              }
+
+              100% {
+                opacity: 1;
+                transform: scale(1);
+              }
+            }
+
+            @keyframes courseIconFloat {
+              0%, 100% {
+                transform: translateY(0);
+              }
+
+              50% {
+                transform: translateY(-8px);
+              }
+            }
+          `}
+        </style>
+
       </section>
     );
   }
@@ -535,7 +891,6 @@ const Courses = () => {
       }}
     >
 
-      {/* Title */}
       <h1
         style={{
           color: dm.heading,
@@ -556,7 +911,6 @@ const Courses = () => {
         }}
       >
 
-        {/* Search */}
         <div
           style={{
             position: 'relative',
@@ -588,28 +942,7 @@ const Courses = () => {
               outline: 'none',
               background: dm.input,
               color: dm.inputColor,
-              boxSizing: 'border-box',
-              transition:
-                'border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease'
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor =
-                darkMode ? '#a0b4ff' : '#003366';
-
-              e.currentTarget.style.boxShadow =
-                '0 5px 20px rgba(0,0,0,0.08)';
-
-              e.currentTarget.style.transform =
-                'translateY(-2px)';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor =
-                dm.inputBorder;
-
-              e.currentTarget.style.boxShadow = 'none';
-
-              e.currentTarget.style.transform =
-                'translateY(0)';
+              boxSizing: 'border-box'
             }}
           />
         </div>
@@ -641,12 +974,7 @@ const Courses = () => {
                     : dm.catInactive,
                 fontWeight: '600',
                 cursor: 'pointer',
-                transition:
-                  'all 0.3s ease',
-                transform:
-                  category === cat
-                    ? 'scale(1.05)'
-                    : 'scale(1)'
+                transition: 'all 0.3s ease'
               }}
             >
               {cat}
@@ -661,8 +989,7 @@ const Courses = () => {
           style={{
             textAlign: 'center',
             padding: '60px',
-            color: dm.subtext,
-            animation: 'fadeIn 0.5s ease both'
+            color: dm.subtext
           }}
         >
           <i
@@ -678,7 +1005,6 @@ const Courses = () => {
         </div>
       ) : (
 
-        /* Courses */
         <div className="courses-container">
           {filtered.map((course, index) => (
             <div
@@ -696,7 +1022,6 @@ const Courses = () => {
               }}
             >
 
-              {/* Icon */}
               <div
                 className="card-icon"
                 style={{
@@ -706,7 +1031,6 @@ const Courses = () => {
                 <i className={course.icon}></i>
               </div>
 
-              {/* Category */}
               <span
                 style={{
                   background: dm.tagBg,
@@ -721,17 +1045,14 @@ const Courses = () => {
                 {course.category}
               </span>
 
-              {/* Title */}
               <h3 style={{ color: dm.heading }}>
                 {course.title}
               </h3>
 
-              {/* Description */}
               <p style={{ color: dm.text }}>
                 {course.description}
               </p>
 
-              {/* Button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -744,9 +1065,7 @@ const Courses = () => {
                   padding: '10px 20px',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontWeight: '600',
-                  transition:
-                    'transform 0.3s ease, box-shadow 0.3s ease'
+                  fontWeight: '600'
                 }}
               >
                 <i className="fas fa-arrow-right"></i>{' '}
@@ -758,7 +1077,6 @@ const Courses = () => {
         </div>
       )}
 
-      {/* Local Animation Styles */}
       <style>
         {`
           @keyframes courseCardEntrance {
