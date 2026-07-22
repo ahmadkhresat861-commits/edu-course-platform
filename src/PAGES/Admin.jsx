@@ -115,8 +115,9 @@ const Admin = () => {
       options.body = body;
     }
 
+    // اسم Edge Function الصحيح
     const { data, error } = await supabase.functions.invoke(
-      'admin-users',
+      'quick-action',
       options
     );
 
@@ -660,10 +661,6 @@ const Admin = () => {
         display: 'flex',
       }}
     >
-      {/* =========================
-          Sidebar
-      ========================= */}
-
       <div
         style={{
           width: '250px',
@@ -809,10 +806,6 @@ const Admin = () => {
         </div>
       </div>
 
-      {/* =========================
-          Main Content
-      ========================= */}
-
       <div
         style={{
           marginLeft: '250px',
@@ -820,8 +813,6 @@ const Admin = () => {
           padding: '40px',
         }}
       >
-        {/* Header */}
-
         <div
           style={{
             marginBottom: '30px',
@@ -882,10 +873,6 @@ const Admin = () => {
             )}
           </h1>
         </div>
-
-        {/* =========================
-            Overview
-        ========================= */}
 
         {activeTab === 'overview' && (
           <>
@@ -975,10 +962,6 @@ const Admin = () => {
             </div>
           </>
         )}
-
-        {/* =========================
-            Courses Management
-        ========================= */}
 
         {activeTab === 'courses' && (
           <>
@@ -1369,10 +1352,6 @@ const Admin = () => {
             </div>
           </>
         )}
-
-        {/* =========================
-            Users Management
-        ========================= */}
 
         {activeTab === 'users' && (
           <>
@@ -1770,10 +1749,6 @@ const Admin = () => {
           </>
         )}
 
-        {/* =========================
-            Notifications
-        ========================= */}
-
         {activeTab === 'notifications' && (
           <div
             style={{
@@ -1899,10 +1874,6 @@ const Admin = () => {
           </div>
         )}
 
-        {/* =========================
-            Profiles
-        ========================= */}
-
         {activeTab === 'profiles' && (
           <div
             style={{
@@ -1993,10 +1964,6 @@ const Admin = () => {
             )}
           </div>
         )}
-
-        {/* =========================
-            Reviews
-        ========================= */}
 
         {activeTab === 'reviews' && (
           <div
@@ -2094,10 +2061,6 @@ const Admin = () => {
             )}
           </div>
         )}
-
-        {/* =========================
-            Sessions
-        ========================= */}
 
         {activeTab === 'sessions' && (
           <div
