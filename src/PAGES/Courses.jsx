@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useLang } from '../LanguageContext';
 import '../App.css';
@@ -38,6 +39,7 @@ const StarRating = ({ rating, onRate }) => (
 );
 
 const Courses = () => {
+  const navigate = useNavigate();
   const { darkMode } = useLang();
 
   const dm = {
@@ -80,7 +82,6 @@ const Courses = () => {
   const [comment, setComment] = useState('');
 
   const [user, setUser] = useState(null);
-
   const [enrollment, setEnrollment] = useState(null);
 
   const [submitted, setSubmitted] = useState(false);
@@ -130,7 +131,7 @@ const Courses = () => {
   }, []);
 
   // =========================
-  // LOAD REVIEWS
+  // LOAD REVIEWS + ENROLLMENT
   // =========================
 
   useEffect(() => {
@@ -144,7 +145,7 @@ const Courses = () => {
       fetchReviews();
       checkEnrollment();
     }
-  }, [selected]);
+  }, [selected, user]);
 
   // =========================
   // FETCH REVIEWS
@@ -166,7 +167,6 @@ const Courses = () => {
     }
 
     setReviews(data || []);
-
     setReviewLoading(false);
   };
 
@@ -196,7 +196,7 @@ const Courses = () => {
   };
 
   // =========================
-  // ENROLL IN COURSE
+  // ENROLL
   // =========================
 
   const handleEnroll = async () => {
@@ -234,6 +234,7 @@ const Courses = () => {
 
       if (error.code === '23505') {
         setMessage('You are already enrolled in this course.');
+        await checkEnrollment();
       } else {
         setMessage('Something went wrong. Please try again.');
       }
@@ -266,6 +267,16 @@ const Courses = () => {
     setMessage('You have successfully enrolled in this course! 🎉');
 
     setEnrolling(false);
+  };
+
+  // =========================
+  // START LEARNING
+  // =========================
+
+  const handleStartLearning = () => {
+    if (!selected || !enrollment) return;
+
+    navigate(`/course-learning/${selected.id}`);
   };
 
   // =========================
@@ -336,7 +347,7 @@ const Courses = () => {
   };
 
   // =========================
-  // CALCULATE RATING
+  // RATING
   // =========================
 
   const avgRating = reviews.length
@@ -349,21 +360,30 @@ const Courses = () => {
     : null;
 
   // =========================
-  // FILTER COURSES
+  // FILTER
   // =========================
 
   const categories = [
     'All',
-    ...new Set(courses.map((course) => course.category).filter(Boolean)),
+    ...new Set(
+      courses
+        .map((course) => course.category)
+        .filter(Boolean)
+    ),
   ];
 
   const filtered = courses.filter((course) => {
     const matchesCategory =
-      category === 'All' || course.category === category;
+      category === 'All' ||
+      course.category === category;
 
     const matchesSearch =
-      course.title?.toLowerCase().includes(search.toLowerCase()) ||
-      course.category?.toLowerCase().includes(search.toLowerCase());
+      course.title
+        ?.toLowerCase()
+        .includes(search.toLowerCase()) ||
+      course.category
+        ?.toLowerCase()
+        .includes(search.toLowerCase());
 
     return matchesCategory && matchesSearch;
   });
@@ -436,7 +456,8 @@ const Courses = () => {
             cursor: 'pointer',
           }}
         >
-          <i className="fas fa-arrow-left"></i> Back
+          <i className="fas fa-arrow-left"></i>{' '}
+          Back
         </button>
 
         {/* COURSE INFO */}
@@ -529,13 +550,17 @@ const Courses = () => {
                   marginTop: '5px',
                 }}
               >
-                {avgRating || selected.rating || 'No rating'}
+                {avgRating ||
+                  selected.rating ||
+                  'No rating'}
               </p>
             </div>
           </div>
         </div>
 
-        {/* ENROLLMENT CARD */}
+        {/* =====================================================
+            ENROLLMENT CARD
+        ===================================================== */}
 
         <div
           style={{
@@ -550,6 +575,8 @@ const Courses = () => {
         >
           {enrollment ? (
             <>
+              {/* SUCCESS ICON */}
+
               <div
                 style={{
                   color: '#10b981',
@@ -560,13 +587,27 @@ const Courses = () => {
                 <i className="fas fa-check-circle"></i>
               </div>
 
+              {/* ENROLLED */}
+
               <h3 style={{ color: dm.heading }}>
                 You are enrolled 🎉
               </h3>
 
-              <p style={{ color: dm.text }}>
-                Your progress: {enrollment.progress || 0}%
+              {/* PROGRESS */}
+
+              <p
+                style={{
+                  color: dm.text,
+                  marginTop: '10px',
+                }}
+              >
+                Your progress:{' '}
+                <strong>
+                  {enrollment.progress || 0}%
+                </strong>
               </p>
+
+              {/* PROGRESS BAR */}
 
               <div
                 style={{
@@ -582,15 +623,56 @@ const Courses = () => {
               >
                 <div
                   style={{
-                    width: `${enrollment.progress || 0}%`,
+                    width: `${
+                      enrollment.progress || 0
+                    }%`,
                     height: '100%',
                     background:
                       'linear-gradient(90deg, #003366, #f0a500)',
                     borderRadius: '10px',
-                    transition: 'width 0.5s ease',
+                    transition:
+                      'width 0.5s ease',
                   }}
                 ></div>
               </div>
+
+              {/* START LEARNING BUTTON */}
+
+              <button
+                onClick={handleStartLearning}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  marginTop: '20px',
+                  background:
+                    'linear-gradient(90deg, #003366, #005599)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: '700',
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition:
+                    'transform 0.3s ease, box-shadow 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform =
+                    'translateY(-3px)';
+
+                  e.currentTarget.style.boxShadow =
+                    '0 8px 20px rgba(0,51,102,0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform =
+                    'translateY(0)';
+
+                  e.currentTarget.style.boxShadow =
+                    'none';
+                }}
+              >
+                <i className="fas fa-play-circle"></i>{' '}
+                Start Learning
+              </button>
             </>
           ) : (
             <>
@@ -624,8 +706,6 @@ const Courses = () => {
                   cursor: enrolling
                     ? 'not-allowed'
                     : 'pointer',
-                  transition:
-                    'transform 0.3s ease',
                 }}
               >
                 <i
@@ -646,9 +726,10 @@ const Courses = () => {
             <p
               style={{
                 marginTop: '15px',
-                color: message.includes('successfully')
-                  ? '#10b981'
-                  : dm.heading,
+                color:
+                  message.includes('successfully')
+                    ? '#10b981'
+                    : dm.heading,
                 fontWeight: '600',
               }}
             >
@@ -666,8 +747,6 @@ const Courses = () => {
             padding: '30px',
             boxShadow: dm.shadow,
             marginBottom: '30px',
-            animation:
-              'slideUp 0.7s 0.2s ease both',
           }}
         >
           <h2
@@ -676,7 +755,8 @@ const Courses = () => {
               marginBottom: '20px',
             }}
           >
-            <i className="fas fa-star"></i> Reviews
+            <i className="fas fa-star"></i>{' '}
+            Reviews
           </h2>
 
           {reviewLoading ? (
@@ -699,17 +779,13 @@ const Courses = () => {
               No reviews yet. Be the first!
             </p>
           ) : (
-            reviews.map((review, index) => (
+            reviews.map((review) => (
               <div
                 key={review.id}
                 style={{
                   padding: '15px 0',
                   borderBottom:
                     `1px solid ${dm.cardBorder}`,
-                  animation:
-                    'fadeIn 0.5s ease both',
-                  animationDelay:
-                    `${index * 0.1}s`,
                 }}
               >
                 <StarRating
@@ -837,8 +913,6 @@ const Courses = () => {
               borderRadius: '12px',
               padding: '30px',
               textAlign: 'center',
-              animation:
-                'successPop 0.6s ease both',
             }}
           >
             <i
@@ -855,8 +929,6 @@ const Courses = () => {
             </h3>
           </div>
         )}
-
-        {/* ANIMATIONS */}
 
         <style>
           {`
@@ -879,22 +951,6 @@ const Courses = () => {
 
               to {
                 opacity: 1;
-              }
-            }
-
-            @keyframes successPop {
-              0% {
-                opacity: 0;
-                transform: scale(0.8);
-              }
-
-              70% {
-                transform: scale(1.05);
-              }
-
-              100% {
-                opacity: 1;
-                transform: scale(1);
               }
             }
           `}
@@ -1013,8 +1069,6 @@ const Courses = () => {
                     : dm.catInactive,
                 fontWeight: '600',
                 cursor: 'pointer',
-                transition:
-                  'all 0.3s ease',
               }}
             >
               {cat}
@@ -1023,7 +1077,7 @@ const Courses = () => {
         </div>
       </div>
 
-      {/* NO RESULTS */}
+      {/* COURSES */}
 
       {filtered.length === 0 ? (
         <div
