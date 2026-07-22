@@ -3,30 +3,65 @@ import { supabase } from '../supabase';
 import { useLang } from '../LanguageContext';
 import '../App.css';
 
+const getCourseStyle = (category) => {
+  const styles = {
+    Frontend: {
+      icon: 'fab fa-react',
+      color: '#61dafb',
+      description: 'Build modern and interactive web applications.',
+      details: 'Learn modern frontend development, components, UI, responsive design and best practices.',
+    },
+    Backend: {
+      icon: 'fas fa-server',
+      color: '#3776ab',
+      description: 'Build powerful backend applications and systems.',
+      details: 'Learn backend development, databases, APIs and server-side programming.',
+    },
+    Design: {
+      icon: 'fas fa-paint-brush',
+      color: '#ff6b6b',
+      description: 'Create beautiful and user-friendly digital experiences.',
+      details: 'Learn UI/UX principles, design thinking, wireframes and modern design tools.',
+    },
+  };
+
+  return styles[category] || {
+    icon: 'fas fa-book-open',
+    color: '#f0a500',
+    description: 'Expand your knowledge and learn new skills.',
+    details: 'Explore this course and improve your skills with Zephyr Academy.',
+  };
+};
+
 const StarRating = ({ rating, onRate }) => (
   <div
     style={{
       display: 'flex',
       gap: '5px',
+      alignItems: 'center',
       animation: 'fadeIn 0.5s ease both',
     }}
   >
     {[1, 2, 3, 4, 5].map((star) => (
       <i
         key={star}
-        className={star <= Math.round(rating || 0) ? 'fas fa-star' : 'far fa-star'}
+        className={star <= rating ? 'fas fa-star' : 'far fa-star'}
         style={{
           color: '#f0a500',
           cursor: onRate ? 'pointer' : 'default',
           fontSize: '1.2rem',
-          transition: 'transform 0.2s ease',
+          transition: 'transform 0.2s ease, color 0.2s ease',
         }}
         onClick={() => onRate && onRate(star)}
         onMouseEnter={(e) => {
-          if (onRate) e.currentTarget.style.transform = 'scale(1.25)';
+          if (onRate) {
+            e.currentTarget.style.transform = 'scale(1.25)';
+          }
         }}
         onMouseLeave={(e) => {
-          if (onRate) e.currentTarget.style.transform = 'scale(1)';
+          if (onRate) {
+            e.currentTarget.style.transform = 'scale(1)';
+          }
         }}
       />
     ))}
@@ -71,45 +106,41 @@ const Courses = () => {
   const [comment, setComment] = useState('');
 
   const [user, setUser] = useState(null);
+  const [enrolled, setEnrolled] = useState(false);
+
+  const [submitted, setSubmitted] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [enrollLoading, setEnrollLoading] = useState(false);
 
-  const [submitted, setSubmitted] = useState(false);
-  const [isEnrolled, setIsEnrolled] = useState(false);
-
   const [pageVisible, setPageVisible] = useState(false);
   const [detailsVisible, setDetailsVisible] = useState(false);
 
   // ============================================================
-  // LOAD PAGE
+  // LOAD USER
   // ============================================================
 
   useEffect(() => {
-    setTimeout(() => {
-      setPageVisible(true);
-    }, 100);
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    fetchCourses();
+      setUser(user);
+    };
+
     getUser();
   }, []);
 
   // ============================================================
-  // GET USER
+  // LOAD COURSES
   // ============================================================
 
-  const getUser = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    setUser(user);
-  };
-
-  // ============================================================
-  // FETCH COURSES
-  // ============================================================
+  useEffect(() => {
+    setPageVisible(true);
+    fetchCourses();
+  }, []);
 
   const fetchCourses = async () => {
     setLoading(true);
@@ -120,10 +151,8 @@ const Courses = () => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching courses:', error);
-    }
-
-    if (data) {
+      console.error('Error loading courses:', error);
+    } else if (data) {
       setCourses(data);
     }
 
@@ -131,48 +160,45 @@ const Courses = () => {
   };
 
   // ============================================================
-  // SELECT COURSE
+  // COURSE SELECT
   // ============================================================
 
-  const handleSelectCourse = async (course) => {
-    setSelected(course);
+  useEffect(() => {
+    if (!selected) return;
+
     setDetailsVisible(false);
-
-    setTimeout(() => {
-      setDetailsVisible(true);
-    }, 100);
-
-    setReviews([]);
     setSubmitted(false);
     setMyRating(0);
     setComment('');
 
-    await fetchReviews(course.id);
+    const timer = setTimeout(() => {
+      setDetailsVisible(true);
+    }, 100);
 
-    if (user) {
-      await checkEnrollment(course.id);
-    }
-  };
+    fetchReviews();
+    checkEnrollment();
+
+    return () => clearTimeout(timer);
+  }, [selected]);
 
   // ============================================================
   // FETCH REVIEWS
   // ============================================================
 
-  const fetchReviews = async (courseId) => {
+  const fetchReviews = async () => {
+    if (!selected) return;
+
     setReviewLoading(true);
 
     const { data, error } = await supabase
       .from('reviews')
       .select('*')
-      .eq('course_id', courseId)
-      .order('created_at', { ascending: false });
+      .eq('course_id', selected.id);
 
     if (error) {
-      console.error('Error fetching reviews:', error);
-    }
-
-    if (data) {
-      setReviews(data);
+      console.error('Error loading reviews:', error);
+    } else {
+      setReviews(data || []);
     }
 
     setReviewLoading(false);
@@ -182,22 +208,25 @@ const Courses = () => {
   // CHECK ENROLLMENT
   // ============================================================
 
-  const checkEnrollment = async (courseId) => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('enrollments')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('course_id', courseId)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error checking enrollment:', error);
+  const checkEnrollment = async () => {
+    if (!user || !selected) {
+      setEnrolled(false);
       return;
     }
 
-    setIsEnrolled(!!data);
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('course_id', selected.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Enrollment check error:', error);
+      return;
+    }
+
+    setEnrolled(!!data);
   };
 
   // ============================================================
@@ -210,9 +239,7 @@ const Courses = () => {
       return;
     }
 
-    if (!selected) return;
-
-    if (isEnrolled) return;
+    if (enrolled) return;
 
     setEnrollLoading(true);
 
@@ -226,33 +253,40 @@ const Courses = () => {
       });
 
     if (error) {
-      console.error('Enrollment error:', error);
-
       if (error.code === '23505') {
-        alert('You are already enrolled in this course.');
-        setIsEnrolled(true);
+        setEnrolled(true);
       } else {
+        console.error('Enrollment error:', error);
         alert('Something went wrong. Please try again.');
       }
+    } else {
+      setEnrolled(true);
 
-      setEnrollLoading(false);
-      return;
+      // Update students count
+      const newStudents = (selected.students || 0) + 1;
+
+      const { error: updateError } = await supabase
+        .from('courses')
+        .update({
+          students: newStudents,
+        })
+        .eq('id', selected.id);
+
+      if (!updateError) {
+        setSelected({
+          ...selected,
+          students: newStudents,
+        });
+
+        setCourses((prev) =>
+          prev.map((course) =>
+            course.id === selected.id
+              ? { ...course, students: newStudents }
+              : course
+          )
+        );
+      }
     }
-
-    // Update students count
-    await supabase
-      .from('courses')
-      .update({
-        students: (selected.students || 0) + 1,
-      })
-      .eq('id', selected.id);
-
-    setSelected({
-      ...selected,
-      students: (selected.students || 0) + 1,
-    });
-
-    setIsEnrolled(true);
 
     setEnrollLoading(false);
   };
@@ -267,8 +301,12 @@ const Courses = () => {
       return;
     }
 
+    if (!enrolled) {
+      alert('You need to enroll in this course before reviewing it.');
+      return;
+    }
+
     if (!myRating) {
-      alert('Please select a rating.');
       return;
     }
 
@@ -278,8 +316,8 @@ const Courses = () => {
       .from('reviews')
       .upsert(
         {
-          course_id: selected.id,
           user_id: user.id,
+          course_id: selected.id,
           rating: myRating,
           comment: comment,
         },
@@ -291,13 +329,10 @@ const Courses = () => {
     if (error) {
       console.error('Review error:', error);
       alert('Could not submit your review.');
-      setReviewLoading(false);
-      return;
+    } else {
+      setSubmitted(true);
+      await fetchReviews();
     }
-
-    setSubmitted(true);
-
-    await fetchReviews(selected.id);
 
     setReviewLoading(false);
   };
@@ -315,7 +350,7 @@ const Courses = () => {
       setSubmitted(false);
       setMyRating(0);
       setComment('');
-      setIsEnrolled(false);
+      setEnrolled(false);
     }, 250);
   };
 
@@ -325,40 +360,73 @@ const Courses = () => {
 
   const avgRating = reviews.length
     ? (
-        reviews.reduce((total, review) => total + Number(review.rating), 0) /
-        reviews.length
+        reviews.reduce(
+          (total, review) => total + Number(review.rating),
+          0
+        ) / reviews.length
       ).toFixed(1)
-    : selected?.rating || 0;
+    : selected?.rating || null;
 
   // ============================================================
-  // CATEGORIES
-  // ============================================================
-
-  const categories = [
-    'All',
-    ...new Set(courses.map((course) => course.category).filter(Boolean)),
-  ];
-
-  // ============================================================
-  // FILTER COURSES
+  // FILTER
   // ============================================================
 
   const filtered = courses.filter((course) => {
-    const matchesCategory =
-      category === 'All' || course.category === category;
+    const courseCategory = course.category || 'Other';
 
-    const matchesSearch =
-      course.title?.toLowerCase().includes(search.toLowerCase()) ||
-      course.category?.toLowerCase().includes(search.toLowerCase());
-
-    return matchesCategory && matchesSearch;
+    return (
+      (category === 'All' || courseCategory === category) &&
+      (course.title || '')
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
   });
+
+  // ============================================================
+  // LOADING
+  // ============================================================
+
+  if (loading) {
+    return (
+      <section
+        style={{
+          minHeight: '100vh',
+          background: dm.bg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          style={{
+            textAlign: 'center',
+            animation: 'fadeIn 0.5s ease both',
+          }}
+        >
+          <i
+            className="fas fa-spinner fa-spin"
+            style={{
+              fontSize: '3rem',
+              color: dm.heading,
+              marginBottom: '15px',
+            }}
+          ></i>
+
+          <p style={{ color: dm.subtext }}>
+            Loading courses...
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   // ============================================================
   // COURSE DETAILS
   // ============================================================
 
   if (selected) {
+    const courseStyle = getCourseStyle(selected.category);
+
     return (
       <section
         style={{
@@ -374,7 +442,6 @@ const Courses = () => {
           transition: 'opacity 0.5s ease, transform 0.5s ease',
         }}
       >
-
         {/* Back */}
         <button
           onClick={handleBack}
@@ -386,6 +453,19 @@ const Courses = () => {
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
+            transition:
+              'transform 0.3s ease, box-shadow 0.3s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform =
+              'translateX(-5px)';
+            e.currentTarget.style.boxShadow =
+              '0 6px 15px rgba(0,0,0,0.2)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform =
+              'translateX(0)';
+            e.currentTarget.style.boxShadow = 'none';
           }}
         >
           <i className="fas fa-arrow-left"></i> Back
@@ -400,125 +480,116 @@ const Courses = () => {
           }}
         >
           <i
-            className="fas fa-book-open"
+            className={courseStyle.icon}
             style={{
               fontSize: '4rem',
-              color: '#f0a500',
+              color: courseStyle.color,
               marginBottom: '15px',
               display: 'block',
-              animation: 'courseIconFloat 3s ease-in-out infinite',
+              animation:
+                'courseIconFloat 3s ease-in-out infinite',
             }}
           ></i>
+
+          <span
+            style={{
+              background: dm.tagBg,
+              color: dm.tagColor,
+              padding: '5px 15px',
+              borderRadius: '20px',
+              fontSize: '0.85rem',
+            }}
+          >
+            {selected.category || 'Course'}
+          </span>
 
           <h1 style={{ color: dm.heading }}>
             {selected.title}
           </h1>
 
-          <p style={{ color: dm.text }}>
-            {selected.category}
+          <p
+            style={{
+              color: dm.text,
+              fontSize: '1.1rem',
+              margin: '15px 0',
+            }}
+          >
+            {courseStyle.details}
           </p>
 
+          {/* Stats */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: '20px',
-              marginTop: '20px',
+              gap: '25px',
               flexWrap: 'wrap',
+              margin: '20px 0',
             }}
           >
-            <span style={{ color: dm.text }}>
+            <div style={{ color: dm.text }}>
               <i className="fas fa-users"></i>{' '}
               {selected.students || 0} Students
-            </span>
+            </div>
 
-            <span style={{ color: dm.text }}>
-              <i className="fas fa-star" style={{ color: '#f0a500' }}></i>{' '}
-              {avgRating || 'No rating'}
-            </span>
-          </div>
-        </div>
-
-        {/* Enrollment Card */}
-        <div
-          style={{
-            background: dm.reviewBg,
-            borderRadius: '12px',
-            padding: '30px',
-            boxShadow: dm.shadow,
-            marginBottom: '30px',
-            textAlign: 'center',
-            animation: 'slideUp 0.7s 0.1s ease both',
-          }}
-        >
-          {isEnrolled ? (
-            <>
+            <div style={{ color: dm.text }}>
               <i
-                className="fas fa-check-circle"
-                style={{
-                  fontSize: '3rem',
-                  color: '#10b981',
-                  marginBottom: '15px',
-                }}
-              ></i>
+                className="fas fa-star"
+                style={{ color: '#f0a500' }}
+              ></i>{' '}
+              {avgRating || 'No rating'}
+            </div>
+          </div>
 
-              <h2 style={{ color: dm.heading }}>
-                You are enrolled!
-              </h2>
-
-              <p style={{ color: dm.text }}>
-                You can continue learning from your dashboard.
-              </p>
-
-              <button
-                onClick={() => window.location.href = '/dashboard'}
-                style={{
-                  marginTop: '15px',
-                  padding: '12px 25px',
-                  background: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                }}
-              >
-                <i className="fas fa-chart-line"></i> Go to Dashboard
-              </button>
-            </>
-          ) : (
-            <>
-              <h2 style={{ color: dm.heading }}>
-                Start Learning Today
-              </h2>
-
-              <p style={{ color: dm.text }}>
-                Enroll in this course and start your learning journey.
-              </p>
-
-              <button
-                onClick={handleEnroll}
-                disabled={enrollLoading}
-                style={{
-                  marginTop: '15px',
-                  padding: '14px 35px',
-                  background: enrollLoading
-                    ? '#888'
-                    : 'linear-gradient(90deg, #003366, #005599)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontWeight: '700',
-                  fontSize: '1rem',
-                  cursor: enrollLoading ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 8px 20px rgba(0,51,102,0.25)',
-                }}
-              >
-                <i className="fas fa-graduation-cap"></i>{' '}
-                {enrollLoading ? 'Enrolling...' : 'Enroll Now'}
-              </button>
-            </>
-          )}
+          {/* Enroll Button */}
+          <button
+            onClick={handleEnroll}
+            disabled={enrollLoading || enrolled}
+            style={{
+              padding: '14px 35px',
+              background: enrolled
+                ? '#10b981'
+                : dm.btnBack,
+              color: 'white',
+              border: 'none',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '1rem',
+              cursor: enrolled
+                ? 'default'
+                : 'pointer',
+              transition:
+                'transform 0.3s ease, box-shadow 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (!enrolled) {
+                e.currentTarget.style.transform =
+                  'translateY(-3px)';
+                e.currentTarget.style.boxShadow =
+                  '0 8px 20px rgba(0,0,0,0.2)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform =
+                'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <i
+              className={
+                enrolled
+                  ? 'fas fa-check'
+                  : enrollLoading
+                  ? 'fas fa-spinner fa-spin'
+                  : 'fas fa-user-plus'
+              }
+            ></i>{' '}
+            {enrolled
+              ? 'Enrolled'
+              : enrollLoading
+              ? 'Enrolling...'
+              : 'Enroll Now'}
+          </button>
         </div>
 
         {/* Reviews */}
@@ -529,33 +600,61 @@ const Courses = () => {
             padding: '30px',
             boxShadow: dm.shadow,
             marginBottom: '30px',
+            animation:
+              'slideUp 0.7s 0.2s ease both',
           }}
         >
-          <h2 style={{ color: dm.heading }}>
+          <h2
+            style={{
+              color: dm.heading,
+              marginBottom: '20px',
+            }}
+          >
             <i className="fas fa-star"></i> Reviews
           </h2>
 
           {reviewLoading ? (
-            <p style={{ color: dm.subtext, textAlign: 'center' }}>
-              <i className="fas fa-spinner fa-spin"></i> Loading...
+            <p
+              style={{
+                color: dm.subtext,
+                textAlign: 'center',
+              }}
+            >
+              <i className="fas fa-spinner fa-spin"></i>{' '}
+              Loading reviews...
             </p>
           ) : reviews.length === 0 ? (
-            <p style={{ color: dm.subtext, textAlign: 'center' }}>
+            <p
+              style={{
+                color: dm.subtext,
+                textAlign: 'center',
+              }}
+            >
               No reviews yet. Be the first!
             </p>
           ) : (
-            reviews.map((review) => (
+            reviews.map((review, index) => (
               <div
-                key={review.id}
+                key={review.id || index}
                 style={{
                   padding: '15px 0',
-                  borderBottom: `1px solid ${dm.cardBorder}`,
+                  borderBottom:
+                    `1px solid ${dm.cardBorder}`,
+                  animation:
+                    'fadeIn 0.5s ease both',
+                  animationDelay:
+                    `${index * 0.1}s`,
                 }}
               >
                 <StarRating rating={review.rating} />
 
                 {review.comment && (
-                  <p style={{ color: dm.text }}>
+                  <p
+                    style={{
+                      color: dm.text,
+                      marginTop: '8px',
+                    }}
+                  >
                     {review.comment}
                   </p>
                 )}
@@ -572,33 +671,50 @@ const Courses = () => {
               borderRadius: '12px',
               padding: '30px',
               boxShadow: dm.shadow,
+              animation:
+                'slideUp 0.7s 0.3s ease both',
             }}
           >
-            <h2 style={{ color: dm.heading }}>
+            <h2
+              style={{
+                color: dm.heading,
+                marginBottom: '20px',
+              }}
+            >
               <i className="fas fa-pen"></i> Add Your Review
             </h2>
 
-            <p style={{ color: dm.text }}>
-              Your Rating:
-            </p>
+            <div style={{ marginBottom: '15px' }}>
+              <p
+                style={{
+                  marginBottom: '8px',
+                  fontWeight: '600',
+                  color: dm.heading,
+                }}
+              >
+                Your Rating:
+              </p>
 
-            <StarRating
-              rating={myRating}
-              onRate={setMyRating}
-            />
+              <StarRating
+                rating={myRating}
+                onRate={setMyRating}
+              />
+            </div>
 
             <textarea
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) =>
+                setComment(e.target.value)
+              }
               placeholder="Write your review..."
               rows={4}
               style={{
                 width: '100%',
                 padding: '12px',
                 borderRadius: '8px',
-                border: `1px solid ${dm.inputBorder}`,
+                border:
+                  `1px solid ${dm.inputBorder}`,
                 fontSize: '1rem',
-                marginTop: '15px',
                 marginBottom: '15px',
                 background: dm.input,
                 color: dm.inputColor,
@@ -609,27 +725,54 @@ const Courses = () => {
 
             <button
               onClick={handleSubmitReview}
-              disabled={!myRating || reviewLoading}
+              disabled={
+                !myRating ||
+                reviewLoading ||
+                !enrolled
+              }
               style={{
                 width: '100%',
                 padding: '14px',
                 background:
-                  myRating && !reviewLoading
+                  myRating && enrolled
                     ? dm.btnBack
-                    : '#888',
+                    : darkMode
+                    ? '#2a2a3a'
+                    : '#ccc',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
                 fontWeight: '700',
                 cursor:
-                  myRating && !reviewLoading
+                  myRating && enrolled
                     ? 'pointer'
                     : 'not-allowed',
               }}
             >
-              <i className="fas fa-paper-plane"></i>{' '}
-              {reviewLoading ? 'Submitting...' : 'Submit Review'}
+              <i
+                className={
+                  reviewLoading
+                    ? 'fas fa-spinner fa-spin'
+                    : 'fas fa-paper-plane'
+                }
+              ></i>{' '}
+              {reviewLoading
+                ? 'Submitting...'
+                : 'Submit Review'}
             </button>
+
+            {!enrolled && (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: dm.subtext,
+                  marginTop: '12px',
+                  fontSize: '0.85rem',
+                }}
+              >
+                Enroll in this course to leave a review.
+              </p>
+            )}
           </div>
         ) : (
           <div
@@ -638,7 +781,8 @@ const Courses = () => {
               borderRadius: '12px',
               padding: '30px',
               textAlign: 'center',
-              animation: 'successPop 0.6s ease both',
+              animation:
+                'successPop 0.6s ease both',
             }}
           >
             <i
@@ -646,6 +790,8 @@ const Courses = () => {
               style={{
                 fontSize: '3rem',
                 color: '#10b981',
+                marginBottom: '15px',
+                display: 'block',
               }}
             ></i>
 
@@ -654,36 +800,6 @@ const Courses = () => {
             </h3>
           </div>
         )}
-
-        <style>
-          {`
-            @keyframes courseIconFloat {
-              0%, 100% {
-                transform: translateY(0);
-              }
-
-              50% {
-                transform: translateY(-8px);
-              }
-            }
-
-            @keyframes successPop {
-              0% {
-                opacity: 0;
-                transform: scale(0.8);
-              }
-
-              70% {
-                transform: scale(1.05);
-              }
-
-              100% {
-                opacity: 1;
-                transform: scale(1);
-              }
-            }
-          `}
-        </style>
       </section>
     );
   }
@@ -692,44 +808,68 @@ const Courses = () => {
   // COURSES LIST
   // ============================================================
 
+  const categories = [
+    'All',
+    ...new Set(
+      courses
+        .map((course) => course.category)
+        .filter(Boolean)
+    ),
+  ];
+
   return (
     <section
+      id="courses"
       style={{
         background: dm.bg,
         minHeight: '100vh',
         padding: '40px 20px',
         opacity: pageVisible ? 1 : 0,
-        transform: pageVisible
-          ? 'translateY(0)'
-          : 'translateY(20px)',
-        transition: 'opacity 0.7s ease, transform 0.7s ease',
+        transform:
+          pageVisible
+            ? 'translateY(0)'
+            : 'translateY(20px)',
+        transition:
+          'opacity 0.7s ease, transform 0.7s ease',
       }}
     >
-
+      {/* Title */}
       <h1
         style={{
           color: dm.heading,
           textAlign: 'center',
+          animation:
+            'slideUp 0.7s ease both',
         }}
       >
-        <i className="fas fa-book-open"></i> Our Courses
+        <i className="fas fa-book-open"></i>{' '}
+        Our Courses
       </h1>
 
       {/* Search */}
       <div
         style={{
           maxWidth: '700px',
-          margin: '30px auto 40px',
+          margin: '0 auto 40px',
+          padding: '0 20px',
+          animation:
+            'slideUp 0.7s 0.15s ease both',
         }}
       >
-        <div style={{ position: 'relative' }}>
+        <div
+          style={{
+            position: 'relative',
+            marginBottom: '20px',
+          }}
+        >
           <i
             className="fas fa-search"
             style={{
               position: 'absolute',
               left: '15px',
               top: '50%',
-              transform: 'translateY(-50%)',
+              transform:
+                'translateY(-50%)',
               color: dm.subtext,
             }}
           ></i>
@@ -738,17 +878,21 @@ const Courses = () => {
             type="text"
             placeholder="Search courses..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
             style={{
               width: '100%',
-              padding: '14px 14px 14px 45px',
+              padding:
+                '14px 14px 14px 45px',
               borderRadius: '10px',
-              border: `2px solid ${dm.inputBorder}`,
+              border:
+                `2px solid ${dm.inputBorder}`,
+              fontSize: '1rem',
+              outline: 'none',
               background: dm.input,
               color: dm.inputColor,
-              fontSize: '1rem',
               boxSizing: 'border-box',
-              outline: 'none',
             }}
           />
         </div>
@@ -760,17 +904,19 @@ const Courses = () => {
             gap: '10px',
             justifyContent: 'center',
             flexWrap: 'wrap',
-            marginTop: '20px',
           }}
         >
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setCategory(cat)}
+              onClick={() =>
+                setCategory(cat)
+              }
               style={{
                 padding: '8px 20px',
                 borderRadius: '20px',
-                border: `2px solid ${dm.catBorder}`,
+                border:
+                  `2px solid ${dm.catBorder}`,
                 background:
                   category === cat
                     ? dm.catActiveBg
@@ -781,7 +927,12 @@ const Courses = () => {
                     : dm.catInactive,
                 fontWeight: '600',
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
+                transition:
+                  'all 0.3s ease',
+                transform:
+                  category === cat
+                    ? 'scale(1.05)'
+                    : 'scale(1)',
               }}
             >
               {cat}
@@ -790,28 +941,15 @@ const Courses = () => {
         </div>
       </div>
 
-      {/* Loading */}
-      {loading ? (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '80px',
-            color: dm.heading,
-          }}
-        >
-          <i
-            className="fas fa-spinner fa-spin"
-            style={{ fontSize: '3rem' }}
-          ></i>
-
-          <p>Loading courses...</p>
-        </div>
-      ) : filtered.length === 0 ? (
+      {/* No Results */}
+      {filtered.length === 0 ? (
         <div
           style={{
             textAlign: 'center',
             padding: '60px',
             color: dm.subtext,
+            animation:
+              'fadeIn 0.5s ease both',
           }}
         >
           <i
@@ -819,6 +957,7 @@ const Courses = () => {
             style={{
               fontSize: '3rem',
               marginBottom: '15px',
+              display: 'block',
             }}
           ></i>
 
@@ -826,91 +965,160 @@ const Courses = () => {
         </div>
       ) : (
         <div className="courses-container">
-          {filtered.map((course, index) => (
-            <div
-              key={course.id}
-              className="course-card"
-              onClick={() => handleSelectCourse(course)}
-              style={{
-                background: dm.card,
-                boxShadow: dm.shadow,
-                animation: 'courseCardEntrance 0.7s ease both',
-                animationDelay: `${index * 0.1}s`,
-                cursor: 'pointer',
-              }}
-            >
-              <div
-                className="card-icon"
-                style={{
-                  color: '#f0a500',
-                }}
-              >
-                <i className="fas fa-book-open"></i>
-              </div>
+          {filtered.map(
+            (course, index) => {
+              const courseStyle =
+                getCourseStyle(
+                  course.category
+                );
 
-              <span
-                style={{
-                  background: dm.tagBg,
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.8rem',
-                  color: dm.tagColor,
-                  marginBottom: '10px',
-                  display: 'inline-block',
-                }}
-              >
-                {course.category}
-              </span>
+              return (
+                <div
+                  key={course.id}
+                  className="course-card"
+                  onClick={() =>
+                    setSelected(course)
+                  }
+                  style={{
+                    background: dm.card,
+                    boxShadow: dm.shadow,
+                    animation:
+                      'courseCardEntrance 0.7s ease both',
+                    animationDelay:
+                      `${index * 0.1}s`,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {/* Icon */}
+                  <div
+                    className="card-icon"
+                    style={{
+                      color:
+                        courseStyle.color,
+                    }}
+                  >
+                    <i
+                      className={
+                        courseStyle.icon
+                      }
+                    ></i>
+                  </div>
 
-              <h3 style={{ color: dm.heading }}>
-                {course.title}
-              </h3>
+                  {/* Category */}
+                  <span
+                    style={{
+                      background:
+                        dm.tagBg,
+                      padding:
+                        '4px 12px',
+                      borderRadius:
+                        '20px',
+                      fontSize:
+                        '0.8rem',
+                      color:
+                        dm.tagColor,
+                      marginBottom:
+                        '10px',
+                      display:
+                        'inline-block',
+                    }}
+                  >
+                    {course.category ||
+                      'Course'}
+                  </span>
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  margin: '15px 0',
-                  color: dm.subtext,
-                }}
-              >
-                <span>
-                  <i className="fas fa-users"></i>{' '}
-                  {course.students || 0}
-                </span>
+                  {/* Title */}
+                  <h3
+                    style={{
+                      color:
+                        dm.heading,
+                    }}
+                  >
+                    {course.title}
+                  </h3>
 
-                <span>
-                  <i
-                    className="fas fa-star"
-                    style={{ color: '#f0a500' }}
-                  ></i>{' '}
-                  {course.rating || 0}
-                </span>
-              </div>
+                  {/* Description */}
+                  <p
+                    style={{
+                      color:
+                        dm.text,
+                    }}
+                  >
+                    {
+                      courseStyle.description
+                    }
+                  </p>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelectCourse(course);
-                }}
-                style={{
-                  background: dm.btnBack,
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                }}
-              >
-                <i className="fas fa-arrow-right"></i>{' '}
-                View Details
-              </button>
-            </div>
-          ))}
+                  {/* Stats */}
+                  <div
+                    style={{
+                      display:
+                        'flex',
+                      justifyContent:
+                        'space-between',
+                      color:
+                        dm.subtext,
+                      fontSize:
+                        '0.85rem',
+                      margin:
+                        '10px 0',
+                    }}
+                  >
+                    <span>
+                      <i className="fas fa-users"></i>{' '}
+                      {course.students ||
+                        0}
+                    </span>
+
+                    <span>
+                      <i
+                        className="fas fa-star"
+                        style={{
+                          color:
+                            '#f0a500',
+                        }}
+                      ></i>{' '}
+                      {course.rating ||
+                        'New'}
+                    </span>
+                  </div>
+
+                  {/* Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelected(
+                        course
+                      );
+                    }}
+                    style={{
+                      background:
+                        dm.btnBack,
+                      color: 'white',
+                      border: 'none',
+                      padding:
+                        '10px 20px',
+                      borderRadius:
+                        '8px',
+                      cursor:
+                        'pointer',
+                      fontWeight:
+                        '600',
+                      transition:
+                        'transform 0.3s ease, box-shadow 0.3s ease',
+                    }}
+                  >
+                    <i className="fas fa-arrow-right"></i>{' '}
+                    View Details
+                  </button>
+                </div>
+              );
+            }
+          )}
         </div>
       )}
 
+      {/* Animations */}
       <style>
         {`
           @keyframes courseCardEntrance {
@@ -922,6 +1130,32 @@ const Courses = () => {
             to {
               opacity: 1;
               transform: translateY(0) scale(1);
+            }
+          }
+
+          @keyframes courseIconFloat {
+            0%, 100% {
+              transform: translateY(0);
+            }
+
+            50% {
+              transform: translateY(-8px);
+            }
+          }
+
+          @keyframes successPop {
+            0% {
+              opacity: 0;
+              transform: scale(0.8);
+            }
+
+            70% {
+              transform: scale(1.05);
+            }
+
+            100% {
+              opacity: 1;
+              transform: scale(1);
             }
           }
         `}
