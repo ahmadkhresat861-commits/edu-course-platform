@@ -6,11 +6,18 @@ import '../App.css';
 const Admin = () => {
   const navigate = useNavigate();
 
-  const [users, setUsers] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
-  const [usersLoading, setUsersLoading] = useState(false);
-  const [userSearch, setUserSearch] = useState('');
+
+  // Data states
+  const [profiles, setProfiles] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [sessions, setSessions] = useState([]);
+
+  // Loading states
+  const [profilesLoading, setProfilesLoading] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
 
   // Notification states
   const [notificationTitle, setNotificationTitle] = useState('');
@@ -18,39 +25,7 @@ const Admin = () => {
   const [sendingNotification, setSendingNotification] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState('');
 
-  // ─────────────────────────────────────────────
-  // Stats - currently static
-  // ─────────────────────────────────────────────
-  const stats = [
-    {
-      icon: 'fas fa-users',
-      label: 'Total Users',
-      value: users.length,
-      color: '#003366',
-    },
-    {
-      icon: 'fas fa-book',
-      label: 'Total Courses',
-      value: '6',
-      color: '#10b981',
-    },
-    {
-      icon: 'fas fa-chart-line',
-      label: 'Monthly Views',
-      value: '1.2K',
-      color: '#f0a500',
-    },
-    {
-      icon: 'fas fa-star',
-      label: 'Avg Rating',
-      value: '4.8',
-      color: '#6366f1',
-    },
-  ];
-
-  // ─────────────────────────────────────────────
-  // Static Courses
-  // ─────────────────────────────────────────────
+  // Courses - نفس البيانات الموجودة عندك
   const courses = [
     {
       title: 'React Development',
@@ -91,31 +66,6 @@ const Admin = () => {
   ];
 
   // ─────────────────────────────────────────────
-  // Fetch Users from profiles
-  // ─────────────────────────────────────────────
-  const fetchUsers = async () => {
-    try {
-      setUsersLoading(true);
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, type, bio')
-        .order('username', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching users:', error);
-        return;
-      }
-
-      setUsers(data || []);
-    } catch (error) {
-      console.error('Unexpected error fetching users:', error);
-    } finally {
-      setUsersLoading(false);
-    }
-  };
-
-  // ─────────────────────────────────────────────
   // Check Admin
   // ─────────────────────────────────────────────
   useEffect(() => {
@@ -129,13 +79,97 @@ const Admin = () => {
         return;
       }
 
-      await fetchUsers();
-
       setLoading(false);
     };
 
     checkAdmin();
   }, [navigate]);
+
+  // ─────────────────────────────────────────────
+  // Fetch Profiles
+  // ─────────────────────────────────────────────
+  const fetchProfiles = async () => {
+    setProfilesLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, type, bio')
+        .order('username', { ascending: true });
+
+      if (error) throw error;
+
+      setProfiles(data || []);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+      alert('Failed to load profiles: ' + error.message);
+    } finally {
+      setProfilesLoading(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // Fetch Reviews
+  // ─────────────────────────────────────────────
+  const fetchReviews = async () => {
+    setReviewsLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('id, course_id, user_id, rating, comment')
+        .order('id', { ascending: false });
+
+      if (error) throw error;
+
+      setReviews(data || []);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      alert('Failed to load reviews: ' + error.message);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // Fetch Sessions
+  // ─────────────────────────────────────────────
+  const fetchSessions = async () => {
+    setSessionsLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('id, title, course, data, time')
+        .order('id', { ascending: false });
+
+      if (error) throw error;
+
+      setSessions(data || []);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      alert('Failed to load sessions: ' + error.message);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // Load data when opening tabs
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (activeTab === 'profiles') {
+      fetchProfiles();
+    }
+
+    if (activeTab === 'reviews') {
+      fetchReviews();
+    }
+
+    if (activeTab === 'sessions') {
+      fetchSessions();
+    }
+  }, [activeTab]);
 
   // ─────────────────────────────────────────────
   // Send Notification
@@ -192,29 +226,7 @@ const Admin = () => {
   };
 
   // ─────────────────────────────────────────────
-  // Filter Users
-  // ─────────────────────────────────────────────
-  const filteredUsers = users.filter((user) => {
-    const search = userSearch.toLowerCase();
-
-    return (
-      (user.username || '')
-        .toLowerCase()
-        .includes(search) ||
-      (user.type || '')
-        .toLowerCase()
-        .includes(search) ||
-      (user.bio || '')
-        .toLowerCase()
-        .includes(search) ||
-      (user.id || '')
-        .toLowerCase()
-        .includes(search)
-    );
-  });
-
-  // ─────────────────────────────────────────────
-  // Loading
+  // Loading Screen
   // ─────────────────────────────────────────────
   if (loading) {
     return (
@@ -237,6 +249,36 @@ const Admin = () => {
     );
   }
 
+  // ─────────────────────────────────────────────
+  // Stats
+  // ─────────────────────────────────────────────
+  const stats = [
+    {
+      icon: 'fas fa-users',
+      label: 'Total Profiles',
+      value: profiles.length,
+      color: '#003366',
+    },
+    {
+      icon: 'fas fa-book',
+      label: 'Total Courses',
+      value: courses.length,
+      color: '#10b981',
+    },
+    {
+      icon: 'fas fa-star',
+      label: 'Total Reviews',
+      value: reviews.length,
+      color: '#f0a500',
+    },
+    {
+      icon: 'fas fa-video',
+      label: 'Total Sessions',
+      value: sessions.length,
+      color: '#6366f1',
+    },
+  ];
+
   return (
     <div
       style={{
@@ -245,7 +287,11 @@ const Admin = () => {
         display: 'flex',
       }}
     >
+
+      {/* ═══════════════════════════════════════ */}
       {/* Sidebar */}
+      {/* ═══════════════════════════════════════ */}
+
       <div
         style={{
           width: '250px',
@@ -255,6 +301,7 @@ const Admin = () => {
           position: 'fixed',
           height: '100vh',
           zIndex: 100,
+          overflowY: 'auto',
         }}
       >
         <div
@@ -301,6 +348,21 @@ const Admin = () => {
             icon: 'fas fa-bell',
             label: 'Notifications',
             tab: 'notifications',
+          },
+          {
+            icon: 'fas fa-user-circle',
+            label: 'Profiles',
+            tab: 'profiles',
+          },
+          {
+            icon: 'fas fa-star',
+            label: 'Reviews',
+            tab: 'reviews',
+          },
+          {
+            icon: 'fas fa-video',
+            label: 'Sessions',
+            tab: 'sessions',
           },
         ].map((item, i) => (
           <div
@@ -361,16 +423,25 @@ const Admin = () => {
         >
           <i
             className="fas fa-arrow-left"
-            style={{ color: '#a8c8f0' }}
+            style={{
+              color: '#a8c8f0',
+            }}
           ></i>
 
-          <span style={{ color: '#a8c8f0' }}>
+          <span
+            style={{
+              color: '#a8c8f0',
+            }}
+          >
             Back to Site
           </span>
         </div>
       </div>
 
+      {/* ═══════════════════════════════════════ */}
       {/* Main Content */}
+      {/* ═══════════════════════════════════════ */}
+
       <div
         style={{
           marginLeft: '250px',
@@ -378,9 +449,18 @@ const Admin = () => {
           padding: '40px',
         }}
       >
+
         {/* Header */}
-        <div style={{ marginBottom: '30px' }}>
-          <h1 style={{ color: '#003366' }}>
+        <div
+          style={{
+            marginBottom: '30px',
+          }}
+        >
+          <h1
+            style={{
+              color: '#003366',
+            }}
+          >
             {activeTab === 'overview' && (
               <>
                 <i className="fas fa-chart-pie"></i>{' '}
@@ -408,10 +488,34 @@ const Admin = () => {
                 Notifications
               </>
             )}
+
+            {activeTab === 'profiles' && (
+              <>
+                <i className="fas fa-user-circle"></i>{' '}
+                Profiles Management
+              </>
+            )}
+
+            {activeTab === 'reviews' && (
+              <>
+                <i className="fas fa-star"></i>{' '}
+                Reviews Management
+              </>
+            )}
+
+            {activeTab === 'sessions' && (
+              <>
+                <i className="fas fa-video"></i>{' '}
+                Sessions Management
+              </>
+            )}
           </h1>
         </div>
 
-        {/* Overview Tab */}
+        {/* ═══════════════════════════════════════ */}
+        {/* Overview */}
+        {/* ═══════════════════════════════════════ */}
+
         {activeTab === 'overview' && (
           <>
             <div
@@ -469,7 +573,6 @@ const Admin = () => {
               ))}
             </div>
 
-            {/* Recent Activity */}
             <div
               style={{
                 background: 'white',
@@ -482,90 +585,29 @@ const Admin = () => {
               <h2
                 style={{
                   color: '#003366',
-                  marginBottom: '20px',
                 }}
               >
-                <i className="fas fa-clock"></i>{' '}
-                Recent Activity
+                <i className="fas fa-cogs"></i>{' '}
+                Admin Control Panel
               </h2>
 
-              {[
-                {
-                  icon: 'fas fa-user-plus',
-                  text: 'New user registered',
-                  time: '2 min ago',
-                  color: '#10b981',
-                },
-                {
-                  icon: 'fas fa-book',
-                  text: 'New course enrolled',
-                  time: '15 min ago',
-                  color: '#003366',
-                },
-                {
-                  icon: 'fas fa-star',
-                  text: 'New course rating',
-                  time: '1 hour ago',
-                  color: '#f0a500',
-                },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '15px',
-                    padding: '15px 0',
-                    borderBottom:
-                      '1px solid #f0f0f0',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      background: `${item.color}20`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <i
-                      className={item.icon}
-                      style={{
-                        color: item.color,
-                      }}
-                    ></i>
-                  </div>
-
-                  <div style={{ flex: 1 }}>
-                    <p
-                      style={{
-                        fontWeight: '600',
-                        color: '#003366',
-                        margin: 0,
-                      }}
-                    >
-                      {item.text}
-                    </p>
-                  </div>
-
-                  <span
-                    style={{
-                      color: '#888',
-                      fontSize: '0.85rem',
-                    }}
-                  >
-                    {item.time}
-                  </span>
-                </div>
-              ))}
+              <p
+                style={{
+                  color: '#888',
+                }}
+              >
+                Use the sidebar to manage profiles,
+                reviews, sessions and send notifications
+                to your users.
+              </p>
             </div>
           </>
         )}
 
-        {/* Courses Tab */}
+        {/* ═══════════════════════════════════════ */}
+        {/* Courses */}
+        {/* ═══════════════════════════════════════ */}
+
         {activeTab === 'courses' && (
           <div
             style={{
@@ -574,6 +616,7 @@ const Admin = () => {
               padding: '30px',
               boxShadow:
                 '0 4px 15px rgba(0,0,0,0.08)',
+              overflowX: 'auto',
             }}
           >
             <table
@@ -589,43 +632,19 @@ const Admin = () => {
                     color: 'white',
                   }}
                 >
-                  <th
-                    style={{
-                      padding: '15px',
-                      textAlign: 'left',
-                      borderRadius:
-                        '8px 0 0 8px',
-                    }}
-                  >
+                  <th style={{ padding: '15px', textAlign: 'left' }}>
                     Course
                   </th>
 
-                  <th
-                    style={{
-                      padding: '15px',
-                      textAlign: 'left',
-                    }}
-                  >
+                  <th style={{ padding: '15px', textAlign: 'left' }}>
                     Category
                   </th>
 
-                  <th
-                    style={{
-                      padding: '15px',
-                      textAlign: 'left',
-                    }}
-                  >
+                  <th style={{ padding: '15px', textAlign: 'left' }}>
                     Students
                   </th>
 
-                  <th
-                    style={{
-                      padding: '15px',
-                      textAlign: 'left',
-                      borderRadius:
-                        '0 8px 8px 0',
-                    }}
-                  >
+                  <th style={{ padding: '15px', textAlign: 'left' }}>
                     Rating
                   </th>
                 </tr>
@@ -656,26 +675,13 @@ const Admin = () => {
                           background: '#f0f0f0',
                           padding: '4px 12px',
                           borderRadius: '20px',
-                          fontSize: '0.85rem',
                         }}
                       >
                         {course.category}
                       </span>
                     </td>
 
-                    <td
-                      style={{
-                        padding: '15px',
-                        color: '#555',
-                      }}
-                    >
-                      <i
-                        className="fas fa-users"
-                        style={{
-                          marginRight: '5px',
-                          color: '#003366',
-                        }}
-                      ></i>
+                    <td style={{ padding: '15px' }}>
                       {course.students}
                     </td>
 
@@ -686,13 +692,7 @@ const Admin = () => {
                         fontWeight: '600',
                       }}
                     >
-                      <i
-                        className="fas fa-star"
-                        style={{
-                          marginRight: '5px',
-                        }}
-                      ></i>
-                      {course.rating}
+                      ⭐ {course.rating}
                     </td>
                   </tr>
                 ))}
@@ -701,7 +701,10 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Users Tab */}
+        {/* ═══════════════════════════════════════ */}
+        {/* Users */}
+        {/* ═══════════════════════════════════════ */}
+
         {activeTab === 'users' && (
           <div
             style={{
@@ -712,289 +715,33 @@ const Admin = () => {
                 '0 4px 15px rgba(0,0,0,0.08)',
             }}
           >
-            {/* Users Header */}
-            <div
+            <p
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '15px',
-                flexWrap: 'wrap',
-                marginBottom: '25px',
-              }}
-            >
-              <div>
-                <h2
-                  style={{
-                    color: '#003366',
-                    margin: 0,
-                  }}
-                >
-                  <i
-                    className="fas fa-users"
-                    style={{ marginRight: '10px' }}
-                  ></i>
-                  Users
-                </h2>
-
-                <p
-                  style={{
-                    color: '#888',
-                    marginBottom: 0,
-                  }}
-                >
-                  Total Users:{' '}
-                  <strong style={{ color: '#003366' }}>
-                    {users.length}
-                  </strong>
-                </p>
-              </div>
-
-              <button
-                onClick={fetchUsers}
-                disabled={usersLoading}
-                style={{
-                  background: usersLoading
-                    ? '#999'
-                    : '#003366',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  cursor: usersLoading
-                    ? 'not-allowed'
-                    : 'pointer',
-                  fontWeight: '600',
-                }}
-              >
-                <i
-                  className={
-                    usersLoading
-                      ? 'fas fa-spinner fa-spin'
-                      : 'fas fa-sync-alt'
-                  }
-                  style={{ marginRight: '8px' }}
-                ></i>
-                Refresh
-              </button>
-            </div>
-
-            {/* Search */}
-            <div
-              style={{
-                marginBottom: '25px',
-                position: 'relative',
+                color: '#888',
+                textAlign: 'center',
+                padding: '40px',
               }}
             >
               <i
-                className="fas fa-search"
+                className="fas fa-lock"
                 style={{
-                  position: 'absolute',
-                  left: '15px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#888',
+                  fontSize: '3rem',
+                  marginBottom: '15px',
+                  display: 'block',
+                  color: '#003366',
                 }}
               ></i>
 
-              <input
-                type="text"
-                value={userSearch}
-                onChange={(e) =>
-                  setUserSearch(e.target.value)
-                }
-                placeholder="Search users..."
-                style={{
-                  width: '100%',
-                  padding: '14px 14px 14px 45px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            {/* Loading Users */}
-            {usersLoading && (
-              <div
-                style={{
-                  padding: '40px',
-                  textAlign: 'center',
-                  color: '#888',
-                }}
-              >
-                <i
-                  className="fas fa-spinner fa-spin"
-                  style={{
-                    fontSize: '2rem',
-                    display: 'block',
-                    marginBottom: '10px',
-                    color: '#003366',
-                  }}
-                ></i>
-                Loading users...
-              </div>
-            )}
-
-            {/* No Users */}
-            {!usersLoading &&
-              filteredUsers.length === 0 && (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    padding: '40px',
-                    color: '#888',
-                  }}
-                >
-                  <i
-                    className="fas fa-users-slash"
-                    style={{
-                      fontSize: '3rem',
-                      marginBottom: '15px',
-                      display: 'block',
-                    }}
-                  ></i>
-
-                  {userSearch
-                    ? 'No users found matching your search.'
-                    : 'No users found.'}
-                </div>
-              )}
-
-            {/* Users Table */}
-            {!usersLoading &&
-              filteredUsers.length > 0 && (
-                <div
-                  style={{
-                    overflowX: 'auto',
-                  }}
-                >
-                  <table
-                    style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                    }}
-                  >
-                    <thead>
-                      <tr
-                        style={{
-                          background: '#003366',
-                          color: 'white',
-                        }}
-                      >
-                        <th
-                          style={{
-                            padding: '15px',
-                            textAlign: 'left',
-                          }}
-                        >
-                          Username
-                        </th>
-
-                        <th
-                          style={{
-                            padding: '15px',
-                            textAlign: 'left',
-                          }}
-                        >
-                          Type
-                        </th>
-
-                        <th
-                          style={{
-                            padding: '15px',
-                            textAlign: 'left',
-                          }}
-                        >
-                          Bio
-                        </th>
-
-                        <th
-                          style={{
-                            padding: '15px',
-                            textAlign: 'left',
-                          }}
-                        >
-                          User ID
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {filteredUsers.map((user) => (
-                        <tr
-                          key={user.id}
-                          style={{
-                            borderBottom:
-                              '1px solid #f0f0f0',
-                          }}
-                        >
-                          <td
-                            style={{
-                              padding: '15px',
-                              fontWeight: '600',
-                              color: '#003366',
-                            }}
-                          >
-                            <i
-                              className="fas fa-user"
-                              style={{
-                                marginRight: '8px',
-                                color: '#f0a500',
-                              }}
-                            ></i>
-                            {user.username ||
-                              'No username'}
-                          </td>
-
-                          <td
-                            style={{
-                              padding: '15px',
-                            }}
-                          >
-                            <span
-                              style={{
-                                background: '#f0f0f0',
-                                padding: '5px 12px',
-                                borderRadius: '20px',
-                                fontSize: '0.85rem',
-                              }}
-                            >
-                              {user.type || 'User'}
-                            </span>
-                          </td>
-
-                          <td
-                            style={{
-                              padding: '15px',
-                              color: '#555',
-                              maxWidth: '300px',
-                            }}
-                          >
-                            {user.bio || 'No bio'}
-                          </td>
-
-                          <td
-                            style={{
-                              padding: '15px',
-                              color: '#888',
-                              fontSize: '0.75rem',
-                              wordBreak: 'break-all',
-                            }}
-                          >
-                            {user.id}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              User management requires Supabase
+              admin access
+            </p>
           </div>
         )}
 
-        {/* Notifications Tab */}
+        {/* ═══════════════════════════════════════ */}
+        {/* Notifications */}
+        {/* ═══════════════════════════════════════ */}
+
         {activeTab === 'notifications' && (
           <div
             style={{
@@ -1014,8 +761,11 @@ const Admin = () => {
             >
               <i
                 className="fas fa-bell"
-                style={{ marginRight: '10px' }}
+                style={{
+                  marginRight: '10px',
+                }}
               ></i>
+
               Send Notification
             </h2>
 
@@ -1030,8 +780,12 @@ const Admin = () => {
             </p>
 
             <form onSubmit={sendNotification}>
-              {/* Notification Title */}
-              <div style={{ marginBottom: '20px' }}>
+
+              <div
+                style={{
+                  marginBottom: '20px',
+                }}
+              >
                 <label
                   style={{
                     display: 'block',
@@ -1063,8 +817,11 @@ const Admin = () => {
                 />
               </div>
 
-              {/* Notification Message */}
-              <div style={{ marginBottom: '20px' }}>
+              <div
+                style={{
+                  marginBottom: '20px',
+                }}
+              >
                 <label
                   style={{
                     display: 'block',
@@ -1097,7 +854,6 @@ const Admin = () => {
                 />
               </div>
 
-              {/* Status Message */}
               {notificationStatus && (
                 <div
                   style={{
@@ -1135,21 +891,22 @@ const Admin = () => {
                 </div>
               )}
 
-              {/* Send Button */}
               <button
                 type="submit"
                 disabled={sendingNotification}
                 style={{
-                  background: sendingNotification
-                    ? '#999'
-                    : '#003366',
+                  background:
+                    sendingNotification
+                      ? '#999'
+                      : '#003366',
                   color: 'white',
                   border: 'none',
                   padding: '14px 25px',
                   borderRadius: '8px',
-                  cursor: sendingNotification
-                    ? 'not-allowed'
-                    : 'pointer',
+                  cursor:
+                    sendingNotification
+                      ? 'not-allowed'
+                      : 'pointer',
                   fontSize: '1rem',
                   fontWeight: '600',
                 }}
@@ -1172,6 +929,433 @@ const Admin = () => {
             </form>
           </div>
         )}
+
+        {/* ═══════════════════════════════════════ */}
+        {/* Profiles */}
+        {/* ═══════════════════════════════════════ */}
+
+        {activeTab === 'profiles' && (
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '30px',
+              boxShadow:
+                '0 4px 15px rgba(0,0,0,0.08)',
+              overflowX: 'auto',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+              }}
+            >
+              <h2
+                style={{
+                  color: '#003366',
+                  margin: 0,
+                }}
+              >
+                <i className="fas fa-user-circle"></i>{' '}
+                Profiles
+              </h2>
+
+              <button
+                onClick={fetchProfiles}
+                style={{
+                  background: '#003366',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                <i className="fas fa-sync"></i>{' '}
+                Refresh
+              </button>
+            </div>
+
+            {profilesLoading ? (
+              <p style={{ textAlign: 'center', color: '#888' }}>
+                <i className="fas fa-spinner fa-spin"></i>{' '}
+                Loading profiles...
+              </p>
+            ) : profiles.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#888' }}>
+                No profiles found.
+              </p>
+            ) : (
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                }}
+              >
+                <thead>
+                  <tr
+                    style={{
+                      background: '#003366',
+                      color: 'white',
+                    }}
+                  >
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      ID
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Username
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Type
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Bio
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {profiles.map((profile) => (
+                    <tr
+                      key={profile.id}
+                      style={{
+                        borderBottom:
+                          '1px solid #f0f0f0',
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: '15px',
+                          fontSize: '0.8rem',
+                          color: '#777',
+                        }}
+                      >
+                        {profile.id}
+                      </td>
+
+                      <td
+                        style={{
+                          padding: '15px',
+                          fontWeight: '600',
+                          color: '#003366',
+                        }}
+                      >
+                        {profile.username || '-'}
+                      </td>
+
+                      <td style={{ padding: '15px' }}>
+                        {profile.type || '-'}
+                      </td>
+
+                      <td style={{ padding: '15px' }}>
+                        {profile.bio || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════ */}
+        {/* Reviews */}
+        {/* ═══════════════════════════════════════ */}
+
+        {activeTab === 'reviews' && (
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '30px',
+              boxShadow:
+                '0 4px 15px rgba(0,0,0,0.08)',
+              overflowX: 'auto',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+              }}
+            >
+              <h2
+                style={{
+                  color: '#003366',
+                  margin: 0,
+                }}
+              >
+                <i className="fas fa-star"></i>{' '}
+                Reviews
+              </h2>
+
+              <button
+                onClick={fetchReviews}
+                style={{
+                  background: '#003366',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                <i className="fas fa-sync"></i>{' '}
+                Refresh
+              </button>
+            </div>
+
+            {reviewsLoading ? (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: '#888',
+                }}
+              >
+                <i className="fas fa-spinner fa-spin"></i>{' '}
+                Loading reviews...
+              </p>
+            ) : reviews.length === 0 ? (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: '#888',
+                }}
+              >
+                No reviews found.
+              </p>
+            ) : (
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                }}
+              >
+                <thead>
+                  <tr
+                    style={{
+                      background: '#003366',
+                      color: 'white',
+                    }}
+                  >
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      ID
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Course ID
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      User ID
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Rating
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Comment
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {reviews.map((review) => (
+                    <tr
+                      key={review.id}
+                      style={{
+                        borderBottom:
+                          '1px solid #f0f0f0',
+                      }}
+                    >
+                      <td style={{ padding: '15px' }}>
+                        {review.id}
+                      </td>
+
+                      <td style={{ padding: '15px' }}>
+                        {review.course_id}
+                      </td>
+
+                      <td style={{ padding: '15px' }}>
+                        {review.user_id}
+                      </td>
+
+                      <td
+                        style={{
+                          padding: '15px',
+                          color: '#f0a500',
+                          fontWeight: '600',
+                        }}
+                      >
+                        ⭐ {review.rating}
+                      </td>
+
+                      <td style={{ padding: '15px' }}>
+                        {review.comment || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════ */}
+        {/* Sessions */}
+        {/* ═══════════════════════════════════════ */}
+
+        {activeTab === 'sessions' && (
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '30px',
+              boxShadow:
+                '0 4px 15px rgba(0,0,0,0.08)',
+              overflowX: 'auto',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+              }}
+            >
+              <h2
+                style={{
+                  color: '#003366',
+                  margin: 0,
+                }}
+              >
+                <i className="fas fa-video"></i>{' '}
+                Sessions
+              </h2>
+
+              <button
+                onClick={fetchSessions}
+                style={{
+                  background: '#003366',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                <i className="fas fa-sync"></i>{' '}
+                Refresh
+              </button>
+            </div>
+
+            {sessionsLoading ? (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: '#888',
+                }}
+              >
+                <i className="fas fa-spinner fa-spin"></i>{' '}
+                Loading sessions...
+              </p>
+            ) : sessions.length === 0 ? (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: '#888',
+                }}
+              >
+                No sessions found.
+              </p>
+            ) : (
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                }}
+              >
+                <thead>
+                  <tr
+                    style={{
+                      background: '#003366',
+                      color: 'white',
+                    }}
+                  >
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      ID
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Title
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Course
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Date
+                    </th>
+
+                    <th style={{ padding: '15px', textAlign: 'left' }}>
+                      Time
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {sessions.map((session) => (
+                    <tr
+                      key={session.id}
+                      style={{
+                        borderBottom:
+                          '1px solid #f0f0f0',
+                      }}
+                    >
+                      <td style={{ padding: '15px' }}>
+                        {session.id}
+                      </td>
+
+                      <td
+                        style={{
+                          padding: '15px',
+                          fontWeight: '600',
+                          color: '#003366',
+                        }}
+                      >
+                        {session.title || '-'}
+                      </td>
+
+                      <td style={{ padding: '15px' }}>
+                        {session.course || '-'}
+                      </td>
+
+                      <td style={{ padding: '15px' }}>
+                        {session.data || '-'}
+                      </td>
+
+                      <td style={{ padding: '15px' }}>
+                        {session.time || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   );
