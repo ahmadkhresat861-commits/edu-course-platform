@@ -76,13 +76,11 @@ function App() {
           {/* =========================
               COURSE LEARNING
               Example:
-              /courses/1
-              /courses/2
-              /courses/3
+              /courses/123/learn
           ========================= */}
 
           <Route
-            path="/courses/:courseId"
+            path="/courses/:courseId/learn"
             element={
               <ProtectedRoute>
                 <>
@@ -177,7 +175,10 @@ function App() {
 
         </Routes>
 
-        {/* AI ASSISTANT */}
+        {/* =========================
+            AI ASSISTANT
+        ========================= */}
+
         <AIAssistant />
 
       </BrowserRouter>
