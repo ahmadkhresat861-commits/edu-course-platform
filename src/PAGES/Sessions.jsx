@@ -7,92 +7,348 @@ const Sessions = () => {
   const { darkMode } = useLang();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pageVisible, setPageVisible] = useState(false);
 
-  // ── ألوان الـ dark / light mode ──────────────────────────────────
   const dm = {
-    pageBg:  darkMode ? '#0f1117' : '#f5f5f5',
-    card:    darkMode ? '#1e2130' : 'white',
-    shadow:  darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 15px rgba(0,0,0,0.08)',
-    border:  darkMode ? '#a0b4ff' : '#003366',
+    pageBg: darkMode ? '#0f1117' : '#f5f5f5',
+    card: darkMode ? '#1e2130' : 'white',
+    shadow: darkMode
+      ? '0 10px 35px rgba(0,0,0,0.35)'
+      : '0 8px 25px rgba(0,0,0,0.08)',
+    border: darkMode ? '#a0b4ff' : '#003366',
     heading: darkMode ? '#a0b4ff' : '#003366',
-    text:    darkMode ? '#c8d0e0' : '#555',
+    text: darkMode ? '#c8d0e0' : '#555',
     subtext: darkMode ? '#7a8499' : '#888',
   };
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageVisible(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     const fetchSessions = async () => {
-      const { data } = await supabase.from('sessions').select('*');
-      if (data) setSessions(data);
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('*');
+
+      if (!error && data) {
+        setSessions(data);
+      }
+
       setLoading(false);
     };
+
     fetchSessions();
   }, []);
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dm.pageBg }}>
-      <i className="fas fa-spinner fa-spin" style={{ fontSize: '3rem', color: '#003366' }}></i>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: dm.pageBg,
+          color: dm.heading,
+        }}
+      >
+        <div
+          style={{
+            fontSize: '3rem',
+            color: '#f0a500',
+            animation: 'pulse 1.5s infinite',
+          }}
+        >
+          <i className="fas fa-video"></i>
+        </div>
+
+        <p
+          style={{
+            marginTop: '20px',
+            color: dm.subtext,
+            fontWeight: '600',
+          }}
+        >
+          Loading Live Sessions...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ minHeight: '100vh', background: dm.pageBg }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: dm.pageBg,
+        opacity: pageVisible ? 1 : 0,
+        transition: 'opacity 0.8s ease',
+      }}
+    >
 
       {/* Hero */}
-      <div style={{ background: 'linear-gradient(135deg, #003366, #005599)', padding: '60px 20px', textAlign: 'center', color: 'white' }}>
-        <h1><i className="fas fa-video"></i> Live Sessions</h1>
-        <p style={{ color: '#a8c8f0', marginTop: '10px' }}>Join our live Zoom sessions with expert instructors</p>
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #003366, #005599)',
+          padding: '70px 20px',
+          textAlign: 'center',
+          color: 'white',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            animation: 'slideUp 0.8s ease both',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '4rem',
+              color: '#f0a500',
+              marginBottom: '15px',
+              animation: 'float 3s ease-in-out infinite',
+            }}
+          >
+            <i className="fas fa-video"></i>
+          </div>
+
+          <h1
+            style={{
+              fontSize: '2.5rem',
+              marginBottom: '10px',
+            }}
+          >
+            Live Sessions
+          </h1>
+
+          <p
+            style={{
+              color: '#a8c8f0',
+              fontSize: '1.1rem',
+            }}
+          >
+            Join our live Zoom sessions with expert instructors
+          </p>
+
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '20px',
+              padding: '8px 18px',
+              borderRadius: '30px',
+              background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              letterSpacing: '1px',
+            }}
+          >
+            <span
+              style={{
+                width: '9px',
+                height: '9px',
+                background: '#10b981',
+                borderRadius: '50%',
+                display: 'inline-block',
+                animation: 'pulse 1.5s infinite',
+              }}
+            ></span>
+
+            LIVE LEARNING
+          </div>
+        </div>
       </div>
 
-      <div style={{ maxWidth: '1000px', margin: '40px auto', padding: '0 20px' }}>
+      {/* Sessions Content */}
+      <div
+        style={{
+          maxWidth: '1000px',
+          margin: '0 auto',
+          padding: '60px 20px',
+        }}
+      >
 
+        {/* Counter */}
+        {sessions.length > 0 && (
+          <div
+            style={{
+              textAlign: 'center',
+              marginBottom: '30px',
+              color: dm.subtext,
+              animation: 'fadeIn 0.8s ease both',
+            }}
+          >
+            <i
+              className="fas fa-calendar-check"
+              style={{
+                color: '#f0a500',
+                marginRight: '8px',
+              }}
+            ></i>
+
+            {sessions.length} Upcoming Session
+            {sessions.length !== 1 ? 's' : ''}
+          </div>
+        )}
+
+        {/* Empty State */}
         {sessions.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px', background: dm.card, borderRadius: '12px', boxShadow: dm.shadow }}>
-            <i className="fas fa-calendar-times" style={{ fontSize: '4rem', color: dm.heading, marginBottom: '20px', display: 'block' }}></i>
-            <h2 style={{ color: dm.heading }}>No Sessions Yet</h2>
-            <p style={{ color: dm.subtext }}>Check back soon for upcoming live sessions!</p>
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '80px 30px',
+              background: dm.card,
+              borderRadius: '16px',
+              boxShadow: dm.shadow,
+              animation: 'slideUp 0.8s ease both',
+            }}
+          >
+            <i
+              className="fas fa-calendar-times"
+              style={{
+                fontSize: '4rem',
+                color: dm.heading,
+                marginBottom: '20px',
+                display: 'block',
+                animation: 'float 3s ease-in-out infinite',
+              }}
+            ></i>
+
+            <h2
+              style={{
+                color: dm.heading,
+                marginBottom: '10px',
+              }}
+            >
+              No Sessions Yet
+            </h2>
+
+            <p style={{ color: dm.subtext }}>
+              Check back soon for upcoming live sessions!
+            </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {sessions.map((session) => (
+
+          /* Sessions List */
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
+            {sessions.map((session, index) => (
               <div
                 key={session.id}
                 style={{
                   background: dm.card,
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   padding: '25px',
                   boxShadow: dm.shadow,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: '15px',
-                  borderLeft: `4px solid ${dm.border}`,
+                  gap: '20px',
+                  borderLeft: `5px solid ${dm.border}`,
+                  animation: 'sessionCardEnter 0.7s ease both',
+                  animationDelay: `${index * 0.15}s`,
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-6px)';
+                  e.currentTarget.style.boxShadow =
+                    darkMode
+                      ? '0 15px 40px rgba(0,0,0,0.5)'
+                      : '0 15px 35px rgba(0,0,0,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = dm.shadow;
                 }}
               >
+
+                {/* Session Info */}
                 <div>
-                  <h3 style={{ color: dm.heading, marginBottom: '8px' }}>
-                    <i className="fas fa-video" style={{ color: '#f0a500', marginRight: '8px' }}></i>
+                  <h3
+                    style={{
+                      color: dm.heading,
+                      marginBottom: '12px',
+                      fontSize: '1.3rem',
+                    }}
+                  >
+                    <i
+                      className="fas fa-video"
+                      style={{
+                        color: '#f0a500',
+                        marginRight: '8px',
+                      }}
+                    ></i>
+
                     {session.title}
                   </h3>
-                  <p style={{ color: dm.text, marginBottom: '5px' }}>
-                    <i className="fas fa-book" style={{ marginRight: '8px', color: dm.heading }}></i>
+
+                  <p
+                    style={{
+                      color: dm.text,
+                      marginBottom: '7px',
+                    }}
+                  >
+                    <i
+                      className="fas fa-book"
+                      style={{
+                        marginRight: '8px',
+                        color: dm.heading,
+                      }}
+                    ></i>
+
                     {session.course}
                   </p>
-                  <p style={{ color: dm.text, marginBottom: '5px' }}>
-                    <i className="fas fa-chalkboard-teacher" style={{ marginRight: '8px', color: dm.heading }}></i>
+
+                  <p
+                    style={{
+                      color: dm.text,
+                      marginBottom: '7px',
+                    }}
+                  >
+                    <i
+                      className="fas fa-chalkboard-teacher"
+                      style={{
+                        marginRight: '8px',
+                        color: dm.heading,
+                      }}
+                    ></i>
+
                     {session.instructor}
                   </p>
+
                   <p style={{ color: dm.text }}>
-                    <i className="fas fa-calendar" style={{ marginRight: '8px', color: '#f0a500' }}></i>
+                    <i
+                      className="fas fa-calendar"
+                      style={{
+                        marginRight: '8px',
+                        color: '#f0a500',
+                      }}
+                    ></i>
+
                     {session.date} — {session.time}
                   </p>
                 </div>
+
+                {/* Zoom Button */}
                 <a
                   href={session.zoom_link}
                   target="_blank"
                   rel="noreferrer"
                   style={{
-                    padding: '12px 25px',
+                    padding: '13px 25px',
                     background: '#2D8CFF',
                     color: 'white',
                     borderRadius: '10px',
@@ -101,18 +357,102 @@ const Sessions = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    transition: 'opacity 0.2s',
+                    transition:
+                      'transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease',
                   }}
-                  onMouseOver={e => e.currentTarget.style.opacity = '0.85'}
-                  onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform =
+                      'translateY(-3px) scale(1.03)';
+                    e.currentTarget.style.boxShadow =
+                      '0 8px 20px rgba(45,140,255,0.4)';
+                    e.currentTarget.style.background = '#1677e8';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform =
+                      'translateY(0) scale(1)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.background = '#2D8CFF';
+                  }}
                 >
-                  <i className="fas fa-video"></i> Join Zoom
+                  <i className="fas fa-video"></i>
+                  Join Zoom
+                  <i className="fas fa-arrow-right"></i>
                 </a>
+
               </div>
             ))}
           </div>
         )}
+
       </div>
+
+      {/* Animation Styles */}
+      <style>
+        {`
+          @keyframes slideUp {
+            from {
+              opacity: 0;
+              transform: translateY(40px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 1;
+            }
+          }
+
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(-10px);
+            }
+          }
+
+          @keyframes pulse {
+            0% {
+              transform: scale(1);
+              opacity: 1;
+            }
+            50% {
+              transform: scale(1.15);
+              opacity: 0.7;
+            }
+            100% {
+              transform: scale(1);
+              opacity: 1;
+            }
+          }
+
+          @keyframes sessionCardEnter {
+            from {
+              opacity: 0;
+              transform: translateX(-40px) translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0) translateY(0);
+            }
+          }
+
+          @media (max-width: 600px) {
+            .session-card-wow {
+              flex-direction: column;
+              align-items: stretch;
+            }
+          }
+        `}
+      </style>
+
     </div>
   );
 };
