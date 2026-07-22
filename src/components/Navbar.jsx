@@ -21,16 +21,10 @@ const Navbar = () => {
         setLoading(true);
         setError(null);
 
-        // جيب المستخدم الحالي
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
-
+        // جلب جميع الإشعارات العامة
         const { data, error: fetchError } = await supabase
           .from('notifications')
           .select('*')
-          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
         if (fetchError) throw fetchError;
@@ -38,11 +32,16 @@ const Navbar = () => {
         if (data) {
           setNotifications(data);
 
-          // احسب عدد الغير مقروءة بناءً على وقت آخر قراءة
+          // احسب عدد الإشعارات غير المقروءة بناءً على وقت آخر قراءة
           const lastRead = localStorage.getItem('notif_last_read');
+
           const unreadCount = lastRead
-            ? data.filter((n) => new Date(n.created_at) > new Date(lastRead)).length
+            ? data.filter(
+                (n) =>
+                  new Date(n.created_at) > new Date(lastRead)
+              ).length
             : data.length;
+
           setUnread(unreadCount);
         }
       } catch (err) {
@@ -61,13 +60,21 @@ const Navbar = () => {
     if (!showNotif) return;
 
     const handleClickOutside = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
+      if (
+        notifRef.current &&
+        !notifRef.current.contains(e.target)
+      ) {
         setShowNotif(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    return () =>
+      document.removeEventListener(
+        'mousedown',
+        handleClickOutside
+      );
   }, [showNotif]);
 
   // ── فتح / إغلاق قائمة الإشعارات ────────────────────────────────
@@ -78,50 +85,103 @@ const Navbar = () => {
     if (next) {
       // عند الفتح: صفّر العداد وسجّل وقت القراءة
       setUnread(0);
-      localStorage.setItem('notif_last_read', new Date().toISOString());
+
+      localStorage.setItem(
+        'notif_last_read',
+        new Date().toISOString()
+      );
     }
   };
 
+  // ── تعليم كل الإشعارات كمقروءة ─────────────────────────────────
   const markAllRead = (e) => {
     e.stopPropagation();
+
     setUnread(0);
-    localStorage.setItem('notif_last_read', new Date().toISOString());
+
+    localStorage.setItem(
+      'notif_last_read',
+      new Date().toISOString()
+    );
   };
 
   // ── تنسيق التاريخ ────────────────────────────────────────────────
   const formatDate = (dateStr) =>
-    new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    new Date(dateStr).toLocaleDateString(
+      lang === 'ar' ? 'ar-SA' : 'en-US',
+      {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }
+    );
 
   // ── الواجهة ──────────────────────────────────────────────────────
   return (
     <nav style={{ position: 'relative' }}>
+      
       {/* اللوجو */}
-      <h2 onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}>
-        <i className="fas fa-graduation-cap" style={{ color: '#f0a500', marginRight: '8px' }}></i>
+      <h2
+        onClick={() => navigate('/home')}
+        style={{ cursor: 'pointer' }}
+      >
+        <i
+          className="fas fa-graduation-cap"
+          style={{
+            color: '#f0a500',
+            marginRight: '8px',
+          }}
+        ></i>
         Zephyr Academy
       </h2>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-        <a onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <a
+          onClick={() => navigate('/home')}
+          style={{ cursor: 'pointer' }}
+        >
           <i className="fas fa-home"></i> {t.home}
         </a>
-        <a onClick={() => navigate('/courses')} style={{ cursor: 'pointer' }}>
+
+        <a
+          onClick={() => navigate('/courses')}
+          style={{ cursor: 'pointer' }}
+        >
           <i className="fas fa-book"></i> {t.courses}
         </a>
-        <a onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
+
+        <a
+          onClick={() => navigate('/dashboard')}
+          style={{ cursor: 'pointer' }}
+        >
           <i className="fas fa-chart-bar"></i> {t.dashboard}
         </a>
-        <a onClick={() => navigate('/sessions')} style={{ cursor: 'pointer' }}>
+
+        <a
+          onClick={() => navigate('/sessions')}
+          style={{ cursor: 'pointer' }}
+        >
           <i className="fas fa-video"></i> {t.sessions}
         </a>
-        <a onClick={() => navigate('/contact')} style={{ cursor: 'pointer' }}>
+
+        <a
+          onClick={() => navigate('/contact')}
+          style={{ cursor: 'pointer' }}
+        >
           <i className="fas fa-headset"></i> {t.contact}
         </a>
-        <a onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
+
+        <a
+          onClick={() => navigate('/profile')}
+          style={{ cursor: 'pointer' }}
+        >
           <i className="fas fa-user"></i> {t.profile}
         </a>
 
@@ -158,11 +218,19 @@ const Navbar = () => {
             marginLeft: '5px',
           }}
         >
-          {lang === 'en' ? '🌐 العربية' : '🌐 English'}
+          {lang === 'en'
+            ? '🌐 العربية'
+            : '🌐 English'}
         </button>
 
         {/* جرس الإشعارات */}
-        <div ref={notifRef} style={{ position: 'relative', marginLeft: '5px' }}>
+        <div
+          ref={notifRef}
+          style={{
+            position: 'relative',
+            marginLeft: '5px',
+          }}
+        >
           {/* أيقونة الجرس */}
           <div
             onClick={handleNotif}
@@ -178,7 +246,14 @@ const Navbar = () => {
               position: 'relative',
             }}
           >
-            <i className="fas fa-bell" style={{ fontSize: '1.1rem', color: 'white' }}></i>
+            <i
+              className="fas fa-bell"
+              style={{
+                fontSize: '1.1rem',
+                color: 'white',
+              }}
+            ></i>
+
             {unread > 0 && (
               <span
                 style={{
@@ -209,9 +284,12 @@ const Navbar = () => {
                 position: 'absolute',
                 top: '50px',
                 right: '0',
-                background: darkMode ? '#1e1e2e' : 'white',
+                background: darkMode
+                  ? '#1e1e2e'
+                  : 'white',
                 borderRadius: '12px',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+                boxShadow:
+                  '0 10px 40px rgba(0,0,0,0.2)',
                 width: '320px',
                 zIndex: 1000,
                 overflow: 'hidden',
@@ -228,10 +306,18 @@ const Navbar = () => {
                   alignItems: 'center',
                 }}
               >
-                <h3 style={{ margin: 0, fontSize: '1rem' }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: '1rem',
+                  }}
+                >
                   <i className="fas fa-bell"></i>{' '}
-                  {lang === 'ar' ? 'الإشعارات' : 'Notifications'}
+                  {lang === 'ar'
+                    ? 'الإشعارات'
+                    : 'Notifications'}
                 </h3>
+
                 {unread > 0 && (
                   <span
                     onClick={markAllRead}
@@ -242,43 +328,84 @@ const Navbar = () => {
                       fontWeight: '600',
                     }}
                   >
-                    {lang === 'ar' ? 'تعليم الكل كمقروء ✓' : 'Mark all read ✓'}
+                    {lang === 'ar'
+                      ? 'تعليم الكل كمقروء ✓'
+                      : 'Mark all read ✓'}
                   </span>
                 )}
               </div>
 
               {/* حالة التحميل */}
               {loading && (
-                <div style={{ padding: '30px', textAlign: 'center', color: '#888' }}>
+                <div
+                  style={{
+                    padding: '30px',
+                    textAlign: 'center',
+                    color: '#888',
+                  }}
+                >
                   <i
                     className="fas fa-spinner fa-spin"
-                    style={{ fontSize: '1.5rem', marginBottom: '10px', display: 'block' }}
+                    style={{
+                      fontSize: '1.5rem',
+                      marginBottom: '10px',
+                      display: 'block',
+                    }}
                   ></i>
-                  {lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+
+                  {lang === 'ar'
+                    ? 'جاري التحميل...'
+                    : 'Loading...'}
                 </div>
               )}
 
               {/* حالة الخطأ */}
               {!loading && error && (
-                <div style={{ padding: '30px', textAlign: 'center', color: '#ff4444' }}>
+                <div
+                  style={{
+                    padding: '30px',
+                    textAlign: 'center',
+                    color: '#ff4444',
+                  }}
+                >
                   <i
                     className="fas fa-exclamation-circle"
-                    style={{ fontSize: '1.5rem', marginBottom: '10px', display: 'block' }}
+                    style={{
+                      fontSize: '1.5rem',
+                      marginBottom: '10px',
+                      display: 'block',
+                    }}
                   ></i>
+
                   {error}
                 </div>
               )}
 
-              {/*  حاليالا توجد إشعارات */}
-              {!loading && !error && notifications.length === 0 && (
-                <div style={{ padding: '30px', textAlign: 'center', color: '#888' }}>
-                  <i
-                    className="fas fa-bell-slash"
-                    style={{ fontSize: '2rem', marginBottom: '10px', display: 'block' }}
-                  ></i>
-                  {lang === 'ar' ? 'لا توجد إشعارات' : 'No notifications yet'}
-                </div>
-              )}
+              {/* لا توجد إشعارات */}
+              {!loading &&
+                !error &&
+                notifications.length === 0 && (
+                  <div
+                    style={{
+                      padding: '30px',
+                      textAlign: 'center',
+                      color: '#888',
+                    }}
+                  >
+                    <i
+                      className="fas fa-bell-slash"
+                      style={{
+                        fontSize: '2rem',
+                        marginBottom: '10px',
+                        display: 'block',
+                      }}
+                    ></i>
+
+                    {lang === 'ar'
+                      ? 'لا توجد إشعارات'
+                      : 'No notifications yet'}
+                  </div>
+                )}
 
               {/* قائمة الإشعارات */}
               {!loading &&
@@ -288,18 +415,32 @@ const Navbar = () => {
                     key={notif.id}
                     style={{
                       padding: '15px 20px',
-                      borderBottom: `1px solid ${darkMode ? '#2e2e3e' : '#f0f0f0'}`,
+                      borderBottom: `1px solid ${
+                        darkMode
+                          ? '#2e2e3e'
+                          : '#f0f0f0'
+                      }`,
                       cursor: 'pointer',
                       transition: 'background 0.15s',
                     }}
                     onMouseOver={(e) =>
-                      (e.currentTarget.style.background = darkMode ? '#2a2a3a' : '#f9f9f9')
+                      (e.currentTarget.style.background =
+                        darkMode
+                          ? '#2a2a3a'
+                          : '#f9f9f9')
                     }
                     onMouseOut={(e) =>
-                      (e.currentTarget.style.background = 'transparent')
+                      (e.currentTarget.style.background =
+                        'transparent')
                     }
                   >
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start',
+                      }}
+                    >
                       <div
                         style={{
                           width: '35px',
@@ -312,24 +453,51 @@ const Navbar = () => {
                           flexShrink: 0,
                         }}
                       >
-                        <i className="fas fa-bell" style={{ color: '#f0a500', fontSize: '0.9rem' }}></i>
+                        <i
+                          className="fas fa-bell"
+                          style={{
+                            color: '#f0a500',
+                            fontSize: '0.9rem',
+                          }}
+                        ></i>
                       </div>
+
                       <div>
                         <p
                           style={{
                             margin: 0,
                             fontSize: '0.9rem',
-                            color: darkMode ? '#eee' : '#333',
+                            color: darkMode
+                              ? '#eee'
+                              : '#333',
                             fontWeight: '600',
                           }}
                         >
                           {notif.title}
                         </p>
-                        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: darkMode ? '#aaa' : '#555' }}>
+
+                        <p
+                          style={{
+                            margin: '4px 0 0',
+                            fontSize: '0.85rem',
+                            color: darkMode
+                              ? '#aaa'
+                              : '#555',
+                          }}
+                        >
                           {notif.message}
                         </p>
-                        <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#888' }}>
-                          {formatDate(notif.created_at)}
+
+                        <p
+                          style={{
+                            margin: '4px 0 0',
+                            fontSize: '0.75rem',
+                            color: '#888',
+                          }}
+                        >
+                          {formatDate(
+                            notif.created_at
+                          )}
                         </p>
                       </div>
                     </div>
