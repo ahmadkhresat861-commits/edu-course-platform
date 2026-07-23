@@ -73,7 +73,7 @@ const Courses = () => {
   };
 
   // =========================
-  // COURSES STATE
+  // COURSES
   // =========================
 
   const [courses, setCourses] = useState([]);
@@ -83,14 +83,12 @@ const Courses = () => {
   const [category, setCategory] = useState('All');
 
   // =========================
-  // REVIEWS STATE
+  // REVIEWS
   // =========================
 
   const [reviews, setReviews] = useState([]);
-
   const [myRating, setMyRating] = useState(0);
   const [comment, setComment] = useState('');
-
   const [submitted, setSubmitted] = useState(false);
 
   // =========================
@@ -101,43 +99,29 @@ const Courses = () => {
   const [enrollment, setEnrollment] = useState(null);
 
   // =========================
-  // LESSONS STATE
+  // LESSONS
   // =========================
 
   const [lessons, setLessons] = useState([]);
-  const [selectedLesson, setSelectedLesson] =
-    useState(null);
+  const [selectedLesson, setSelectedLesson] = useState(null);
+  const [lessonProgress, setLessonProgress] = useState([]);
 
-  const [lessonProgress, setLessonProgress] =
-    useState([]);
-
-  const [learningMode, setLearningMode] =
-    useState(false);
+  const [learningMode, setLearningMode] = useState(false);
 
   // =========================
-  // GENERAL STATE
+  // GENERAL
   // =========================
 
   const [loading, setLoading] = useState(true);
-  const [reviewLoading, setReviewLoading] =
-    useState(false);
-  const [enrolling, setEnrolling] =
-    useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [completingLesson, setCompletingLesson] = useState(false);
 
-  const [lessonsLoading, setLessonsLoading] =
-    useState(false);
+  const [pageVisible, setPageVisible] = useState(false);
+  const [detailsVisible, setDetailsVisible] = useState(false);
 
-  const [completingLesson, setCompletingLesson] =
-    useState(false);
-
-  const [pageVisible, setPageVisible] =
-    useState(false);
-
-  const [detailsVisible, setDetailsVisible] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState('');
+  const [message, setMessage] = useState('');
 
   // =========================
   // LOAD COURSES + USER
@@ -149,10 +133,10 @@ const Courses = () => {
         setLoading(true);
 
         const {
-          data: { user },
+          data: { user: currentUser },
         } = await supabase.auth.getUser();
 
-        setUser(user);
+        setUser(currentUser);
 
         const {
           data: coursesData,
@@ -176,6 +160,7 @@ const Courses = () => {
         setTimeout(() => {
           setPageVisible(true);
         }, 100);
+
       } catch (error) {
         console.error(
           'Unexpected loading error:',
@@ -190,7 +175,7 @@ const Courses = () => {
   }, []);
 
   // =========================
-  // LOAD REVIEWS + ENROLLMENT
+  // SELECTED COURSE
   // =========================
 
   useEffect(() => {
@@ -272,12 +257,11 @@ const Courses = () => {
   // LOAD LESSONS
   // =========================
 
-  const loadLessons = async (
-    courseId
-  ) => {
-    if (!courseId) return;
+  const loadLessons = async (courseId) => {
+    if (!courseId) return [];
 
     setLessonsLoading(true);
+    setMessage('');
 
     try {
       const {
@@ -285,9 +269,16 @@ const Courses = () => {
         error: lessonsError,
       } = await supabase
         .from('lessons')
-        .select('*')
+        .select(`
+          id,
+          course_id,
+          title,
+          description,
+          content,
+          lesson_order
+        `)
         .eq('course_id', courseId)
-        .order('id', {
+        .order('lesson_order', {
           ascending: true,
         });
 
@@ -298,21 +289,31 @@ const Courses = () => {
         );
 
         setMessage(
-          'Could not load course lessons.'
+          `Could not load course lessons: ${lessonsError.message}`
         );
 
-        return;
+        setLessons([]);
+        setLessonProgress([]);
+
+        return [];
       }
 
-      setLessons(
-        lessonsData || []
+      console.log(
+        'Lessons loaded successfully:',
+        lessonsData
       );
+
+      setLessons(lessonsData || []);
 
       // =========================
       // LOAD LESSON PROGRESS
       // =========================
 
-      if (user && lessonsData?.length) {
+      if (
+        user &&
+        lessonsData &&
+        lessonsData.length > 0
+      ) {
         const lessonIds =
           lessonsData.map(
             (lesson) => lesson.id
@@ -323,7 +324,13 @@ const Courses = () => {
           error: progressError,
         } = await supabase
           .from('lesson_progress')
-          .select('*')
+          .select(`
+            id,
+            user_id,
+            lesson_id,
+            completed,
+            completed_at
+          `)
           .eq('user_id', user.id)
           .in(
             'lesson_id',
@@ -347,6 +354,7 @@ const Courses = () => {
       }
 
       return lessonsData || [];
+
     } catch (error) {
       console.error(
         'Unexpected lessons error:',
@@ -357,7 +365,11 @@ const Courses = () => {
         'Something went wrong while loading lessons.'
       );
 
+      setLessons([]);
+      setLessonProgress([]);
+
       return [];
+
     } finally {
       setLessonsLoading(false);
     }
@@ -429,7 +441,7 @@ const Courses = () => {
       setEnrollment(data);
 
       // =========================
-      // UPDATE STUDENTS COUNT
+      // UPDATE STUDENTS
       // =========================
 
       const currentStudents =
@@ -461,6 +473,7 @@ const Courses = () => {
       setMessage(
         'You have successfully enrolled in this course! 🎉'
       );
+
     } catch (error) {
       console.error(
         'Unexpected enrollment error:',
@@ -470,6 +483,7 @@ const Courses = () => {
       setMessage(
         'Something went wrong. Please try again.'
       );
+
     } finally {
       setEnrolling(false);
     }
@@ -498,6 +512,7 @@ const Courses = () => {
       setMessage(
         'No lessons are available for this course yet.'
       );
+
       return;
     }
 
@@ -524,8 +539,6 @@ const Courses = () => {
           )
       );
 
-    // إذا كل المحاضرات مكتملة
-    // نفتح آخر محاضرة
     const firstLesson =
       firstUncompleted ||
       lessonsData[
@@ -540,7 +553,7 @@ const Courses = () => {
   };
 
   // =========================
-  // CHECK LESSON COMPLETED
+  // CHECK COMPLETED
   // =========================
 
   const isLessonCompleted = (
@@ -548,8 +561,7 @@ const Courses = () => {
   ) => {
     return lessonProgress.some(
       (item) =>
-        item.lesson_id ===
-          lessonId &&
+        item.lesson_id === lessonId &&
         item.completed === true
     );
   };
@@ -584,7 +596,7 @@ const Courses = () => {
   };
 
   // =========================
-  // MARK LESSON COMPLETE
+  // COMPLETE LESSON
   // =========================
 
   const handleCompleteLesson =
@@ -609,10 +621,6 @@ const Courses = () => {
       setMessage('');
 
       try {
-        // =========================
-        // SAVE PROGRESS
-        // =========================
-
         const {
           data,
           error,
@@ -620,7 +628,8 @@ const Courses = () => {
           .from('lesson_progress')
           .upsert(
             {
-              user_id: user.id,
+              user_id:
+                user.id,
               lesson_id:
                 selectedLesson.id,
               completed: true,
@@ -647,10 +656,6 @@ const Courses = () => {
 
           return;
         }
-
-        // =========================
-        // UPDATE LOCAL PROGRESS
-        // =========================
 
         setLessonProgress(
           (prev) => {
@@ -682,14 +687,16 @@ const Courses = () => {
         // CALCULATE NEW PROGRESS
         // =========================
 
-        const completedCount =
+        const alreadyCompletedCount =
           lessonProgress.filter(
             (item) =>
-              item.completed ===
-                true &&
+              item.completed === true &&
               item.lesson_id !==
                 selectedLesson.id
-          ).length + 1;
+          ).length;
+
+        const completedCount =
+          alreadyCompletedCount + 1;
 
         const newProgress =
           lessons.length > 0
@@ -716,7 +723,10 @@ const Courses = () => {
             completed:
               newProgress >= 100,
           })
-          .eq('user_id', user.id)
+          .eq(
+            'user_id',
+            user.id
+          )
           .eq(
             'course_id',
             selected.id
@@ -740,6 +750,7 @@ const Courses = () => {
             ? 'Congratulations! You completed the course! 🎉'
             : 'Lesson completed successfully! ✅'
         );
+
       } catch (error) {
         console.error(
           'Unexpected complete lesson error:',
@@ -749,6 +760,7 @@ const Courses = () => {
         setMessage(
           'Something went wrong. Please try again.'
         );
+
       } finally {
         setCompletingLesson(false);
       }
@@ -758,49 +770,47 @@ const Courses = () => {
   // NEXT LESSON
   // =========================
 
-  const handleNextLesson =
-    () => {
-      if (
-        !selectedLesson ||
-        lessons.length === 0
-      ) {
-        return;
-      }
+  const handleNextLesson = () => {
+    if (
+      !selectedLesson ||
+      lessons.length === 0
+    ) {
+      return;
+    }
 
-      const currentIndex =
-        lessons.findIndex(
-          (lesson) =>
-            lesson.id ===
-            selectedLesson.id
-        );
+    const currentIndex =
+      lessons.findIndex(
+        (lesson) =>
+          lesson.id ===
+          selectedLesson.id
+      );
 
-      if (
-        currentIndex === -1
-      ) {
-        return;
-      }
+    if (currentIndex === -1) {
+      return;
+    }
 
-      const nextLesson =
-        lessons[
-          currentIndex + 1
-        ];
+    const nextLesson =
+      lessons[
+        currentIndex + 1
+      ];
 
-      if (nextLesson) {
-        setSelectedLesson(
-          nextLesson
-        );
+    if (nextLesson) {
+      setSelectedLesson(
+        nextLesson
+      );
 
-        setMessage('');
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth',
-        });
-      } else {
-        setMessage(
-          'You have completed all available lessons! 🎉'
-        );
-      }
-    };
+      setMessage('');
+
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    } else {
+      setMessage(
+        'You have completed all available lessons! 🎉'
+      );
+    }
+  };
 
   // =========================
   // SELECT LESSON
@@ -825,14 +835,13 @@ const Courses = () => {
   // EXIT LEARNING
   // =========================
 
-  const handleExitLearning =
-    () => {
-      setLearningMode(false);
-      setSelectedLesson(null);
-      setLessons([]);
-      setLessonProgress([]);
-      setMessage('');
-    };
+  const handleExitLearning = () => {
+    setLearningMode(false);
+    setSelectedLesson(null);
+    setLessons([]);
+    setLessonProgress([]);
+    setMessage('');
+  };
 
   // =========================
   // SUBMIT REVIEW
@@ -866,9 +875,12 @@ const Courses = () => {
           {
             course_id:
               selected.id,
-            user_id: user.id,
-            rating: myRating,
-            comment: comment,
+            user_id:
+              user.id,
+            rating:
+              myRating,
+            comment:
+              comment,
           },
           {
             onConflict:
@@ -887,6 +899,7 @@ const Courses = () => {
         );
 
         setReviewLoading(false);
+
         return;
       }
 
@@ -916,6 +929,10 @@ const Courses = () => {
       setMyRating(0);
       setComment('');
       setMessage('');
+      setLessons([]);
+      setLessonProgress([]);
+      setSelectedLesson(null);
+      setLearningMode(false);
     }, 250);
   };
 
@@ -995,8 +1012,7 @@ const Courses = () => {
           minHeight: '100vh',
           background: dm.bg,
           display: 'flex',
-          justifyContent:
-            'center',
+          justifyContent: 'center',
           alignItems: 'center',
         }}
       >
@@ -1010,10 +1026,9 @@ const Courses = () => {
             style={{
               fontSize: '3rem',
               color: dm.heading,
-              marginBottom:
-                '15px',
+              marginBottom: '15px',
             }}
-          ></i>
+          />
 
           <p
             style={{
@@ -1095,8 +1110,7 @@ const Courses = () => {
                 border: 'none',
                 borderRadius:
                   '8px',
-                cursor:
-                  'pointer',
+                cursor: 'pointer',
                 fontWeight:
                   '600',
               }}
@@ -1107,10 +1121,8 @@ const Courses = () => {
 
             <div
               style={{
-                color:
-                  dm.heading,
-                fontWeight:
-                  '700',
+                color: dm.heading,
+                fontWeight: '700',
               }}
             >
               {selected.title}
@@ -1183,20 +1195,20 @@ const Courses = () => {
                   transition:
                     'width 0.5s ease',
                 }}
-              ></div>
+              />
             </div>
           </div>
 
           {/* LEARNING LAYOUT */}
 
           <div
+            className="learning-layout"
             style={{
               display: 'grid',
               gridTemplateColumns:
                 'minmax(0, 2fr) minmax(280px, 1fr)',
               gap: '25px',
-              alignItems:
-                'start',
+              alignItems: 'start',
             }}
           >
             {/* LESSON CONTENT */}
@@ -1677,10 +1689,14 @@ const Courses = () => {
         style={{
           padding:
             '60px 20px',
-          maxWidth: '800px',
-          margin: '0 auto',
-          background: dm.bg,
-          minHeight: '100vh',
+          maxWidth:
+            '800px',
+          margin:
+            '0 auto',
+          background:
+            dm.bg,
+          minHeight:
+            '100vh',
           opacity:
             detailsVisible
               ? 1
@@ -1696,7 +1712,9 @@ const Courses = () => {
         {/* BACK */}
 
         <button
-          onClick={handleBack}
+          onClick={
+            handleBack
+          }
           style={{
             marginBottom:
               '30px',
@@ -1704,7 +1722,8 @@ const Courses = () => {
               '10px 20px',
             background:
               dm.btnBack,
-            color: 'white',
+            color:
+              'white',
             border:
               'none',
             borderRadius:
@@ -1725,14 +1744,14 @@ const Courses = () => {
               'center',
             marginBottom:
               '40px',
-            animation:
-              'slideUp 0.7s ease both',
           }}
         >
           <div
             style={{
-              width: '90px',
-              height: '90px',
+              width:
+                '90px',
+              height:
+                '90px',
               margin:
                 '0 auto 20px',
               borderRadius:
@@ -1757,7 +1776,7 @@ const Courses = () => {
                 color:
                   '#f0a500',
               }}
-            ></i>
+            />
           </div>
 
           <h1
@@ -1798,7 +1817,8 @@ const Courses = () => {
                 'flex',
               justifyContent:
                 'center',
-              gap: '30px',
+              gap:
+                '30px',
               flexWrap:
                 'wrap',
               marginTop:
@@ -1812,7 +1832,7 @@ const Courses = () => {
                   color:
                     '#10b981',
                 }}
-              ></i>
+              />
 
               <p
                 style={{
@@ -1835,7 +1855,7 @@ const Courses = () => {
                   color:
                     '#f0a500',
                 }}
-              ></i>
+              />
 
               <p
                 style={{
@@ -1869,8 +1889,6 @@ const Courses = () => {
               '30px',
             textAlign:
               'center',
-            animation:
-              'slideUp 0.7s 0.1s ease both',
           }}
         >
           {enrollment ? (
@@ -1943,10 +1961,8 @@ const Courses = () => {
                       'linear-gradient(90deg, #003366, #f0a500)',
                     borderRadius:
                       '10px',
-                    transition:
-                      'width 0.5s ease',
                   }}
-                ></div>
+                />
               </div>
 
               {/* START LEARNING */}
@@ -1991,7 +2007,7 @@ const Courses = () => {
                       ? 'fas fa-spinner fa-spin'
                       : 'fas fa-play-circle'
                   }
-                ></i>{' '}
+                />{' '}
                 {lessonsLoading
                   ? 'Loading Lessons...'
                   : 'Start Learning'}
@@ -2057,7 +2073,7 @@ const Courses = () => {
                       ? 'fas fa-spinner fa-spin'
                       : 'fas fa-graduation-cap'
                   }
-                ></i>{' '}
+                />{' '}
                 {enrolling
                   ? 'Enrolling...'
                   : 'Enroll Now'}
@@ -2248,8 +2264,7 @@ const Courses = () => {
                     e
                   ) =>
                     setComment(
-                      e.target
-                        .value
+                      e.target.value
                     )
                   }
                   placeholder="Write your review..."
@@ -2342,7 +2357,7 @@ const Courses = () => {
                 marginBottom:
                   '15px',
               }}
-            ></i>
+            />
 
             <h3
               style={{
@@ -2354,38 +2369,6 @@ const Courses = () => {
             </h3>
           </div>
         )}
-
-        <style>
-          {`
-            @keyframes slideUp {
-              from {
-                opacity: 0;
-                transform: translateY(30px);
-              }
-
-              to {
-                opacity: 1;
-                transform: translateY(0);
-              }
-            }
-
-            @keyframes fadeIn {
-              from {
-                opacity: 0;
-              }
-
-              to {
-                opacity: 1;
-              }
-            }
-
-            @media (max-width: 800px) {
-              .learning-layout {
-                grid-template-columns: 1fr !important;
-              }
-            }
-          `}
-        </style>
       </section>
     );
   }
@@ -2398,9 +2381,12 @@ const Courses = () => {
     <section
       id="courses"
       style={{
-        background: dm.bg,
-        minHeight: '100vh',
-        padding: '40px 20px',
+        background:
+          dm.bg,
+        minHeight:
+          '100vh',
+        padding:
+          '40px 20px',
         opacity:
           pageVisible
             ? 1
@@ -2457,7 +2443,7 @@ const Courses = () => {
               color:
                 dm.subtext,
             }}
-          ></i>
+          />
 
           <input
             type="text"
@@ -2469,8 +2455,7 @@ const Courses = () => {
               e
             ) =>
               setSearch(
-                e.target
-                  .value
+                e.target.value
               )
             }
             style={{
@@ -2513,7 +2498,9 @@ const Courses = () => {
           {categories.map(
             (cat) => (
               <button
-                key={cat}
+                key={
+                  cat
+                }
                 onClick={() =>
                   setCategory(
                     cat
@@ -2571,7 +2558,7 @@ const Courses = () => {
               marginBottom:
                 '15px',
             }}
-          ></i>
+          />
 
           <p>
             No courses found
@@ -2744,6 +2731,16 @@ const Courses = () => {
             to {
               opacity: 1;
               transform: translateY(0) scale(1);
+            }
+          }
+
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+            }
+
+            to {
+              opacity: 1;
             }
           }
         `}
