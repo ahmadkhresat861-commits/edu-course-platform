@@ -108,7 +108,10 @@ const Courses = () => {
 
         setUser(user);
 
-        const { data: coursesData, error } = await supabase
+        const {
+          data: coursesData,
+          error,
+        } = await supabase
           .from('courses')
           .select('*')
           .order('created_at', {
@@ -160,7 +163,10 @@ const Courses = () => {
 
     setReviewLoading(true);
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error,
+    } = await supabase
       .from('reviews')
       .select('*')
       .eq('course_id', selected.id)
@@ -186,7 +192,10 @@ const Courses = () => {
       return;
     }
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error,
+    } = await supabase
       .from('enrollments')
       .select('*')
       .eq('user_id', user.id)
@@ -223,7 +232,10 @@ const Courses = () => {
     setEnrolling(true);
 
     try {
-      const { data, error } = await supabase
+      const {
+        data,
+        error,
+      } = await supabase
         .from('enrollments')
         .insert([
           {
@@ -241,7 +253,6 @@ const Courses = () => {
 
         if (error.code === '23505') {
           setMessage('You are already enrolled in this course.');
-
           await checkEnrollment();
         } else {
           setMessage('Something went wrong. Please try again.');
@@ -256,7 +267,9 @@ const Courses = () => {
       // UPDATE STUDENTS COUNT
       const currentStudents = Number(selected.students) || 0;
 
-      const { error: updateError } = await supabase
+      const {
+        error: updateError,
+      } = await supabase
         .from('courses')
         .update({
           students: currentStudents + 1,
@@ -290,11 +303,6 @@ const Courses = () => {
   // =========================
   // START LEARNING
   // =========================
-  // لا يوجد انتقال إلى CourseLearning
-  // لأن الصفحة تم حذفها.
-  //
-  // حالياً تظهر رسالة ثم نرجع إلى قائمة الكورسات.
-  // لاحقاً سنضع نظام التعلم والمحاضرات داخل تجربة الكورس نفسها.
 
   const handleStartLearning = () => {
     if (!selected || !enrollment) {
@@ -305,10 +313,16 @@ const Courses = () => {
       'Your course is ready. Start learning now! 🎓'
     );
 
-    setTimeout(() => {
-      setSelected(null);
-      setMessage('');
-    }, 1000);
+    /*
+      مهم:
+      لا يوجد انتقال إلى CourseLearning
+      لأن الصفحة تم حذفها.
+
+      في الخطوة القادمة:
+      سنستبدل هذا الجزء بواجهة التعلم
+      بحيث يبدأ الطالب المحاضرة مباشرة
+      داخل نفس تجربة صفحة الكورس.
+    */
   };
 
   // =========================
@@ -330,7 +344,9 @@ const Courses = () => {
 
     setReviewLoading(true);
 
-    const { error } = await supabase
+    const {
+      error,
+    } = await supabase
       .from('reviews')
       .upsert(
         {
@@ -657,13 +673,16 @@ const Courses = () => {
                 </strong>
               </p>
 
+              {/* PROGRESS BAR */}
+
               <div
                 style={{
                   width: '100%',
                   height: '10px',
-                  background: darkMode
-                    ? '#2a2d3d'
-                    : '#e5e7eb',
+                  background:
+                    darkMode
+                      ? '#2a2d3d'
+                      : '#e5e7eb',
                   borderRadius: '10px',
                   overflow: 'hidden',
                   marginTop: '15px',
@@ -914,10 +933,7 @@ const Courses = () => {
 
                 <button
                   onClick={handleSubmitReview}
-                  disabled={
-                    !myRating ||
-                    reviewLoading
-                  }
+                  disabled={!myRating || reviewLoading}
                   style={{
                     width: '100%',
                     padding: '14px',
@@ -1012,9 +1028,10 @@ const Courses = () => {
         minHeight: '100vh',
         padding: '40px 20px',
         opacity: pageVisible ? 1 : 0,
-        transform: pageVisible
-          ? 'translateY(0)'
-          : 'translateY(20px)',
+        transform:
+          pageVisible
+            ? 'translateY(0)'
+            : 'translateY(20px)',
         transition:
           'opacity 0.7s ease, transform 0.7s ease',
       }}
@@ -1135,9 +1152,7 @@ const Courses = () => {
             }}
           ></i>
 
-          <p>
-            No courses found
-          </p>
+          <p>No courses found</p>
         </div>
       ) : (
         <div className="courses-container">
@@ -1200,8 +1215,7 @@ const Courses = () => {
               <div
                 style={{
                   display: 'flex',
-                  justifyContent:
-                    'space-between',
+                  justifyContent: 'space-between',
                   margin: '15px 0',
                   color: dm.subtext,
                   fontSize: '0.85rem',
