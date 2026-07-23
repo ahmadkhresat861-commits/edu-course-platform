@@ -1,55 +1,67 @@
-import React, { useState, useEffect } from 'react';
+[7/23/2026 10:48 PM] Ah Mm: import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../supabase';
 import { useLang } from '../LanguageContext';
 import '../App.css';
 
-const StarRating = ({ rating, onRate }) => (
-  <div
-    style={{
-      display: 'flex',
-      gap: '5px',
-      animation: 'fadeIn 0.5s ease both',
-    }}
-  >
-    {[1, 2, 3, 4, 5].map((star) => (
-      <i
-        key={star}
-        className={
-          star <= Number(rating)
-            ? 'fas fa-star'
-            : 'far fa-star'
-        }
-        style={{
-          color: '#f0a500',
-          cursor: onRate ? 'pointer' : 'default',
-          fontSize: '1.2rem',
-          transition: 'transform 0.2s ease',
-        }}
-        onClick={() =>
-          onRate && onRate(star)
-        }
-        onMouseEnter={(e) => {
-          if (onRate) {
-            e.currentTarget.style.transform =
-              'scale(1.25)';
+// ============================================================
+// STAR RATING
+// ============================================================
+
+const StarRating = ({ rating = 0, onRate }) => {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: '5px',
+        animation: 'fadeIn 0.5s ease both',
+      }}
+    >
+      {[1, 2, 3, 4, 5].map((star) => (
+        <i
+          key={star}
+          className={
+            star <= Number(rating)
+              ? 'fas fa-star'
+              : 'far fa-star'
           }
-        }}
-        onMouseLeave={(e) => {
-          if (onRate) {
-            e.currentTarget.style.transform =
-              'scale(1)';
-          }
-        }}
-      />
-    ))}
-  </div>
-);
+          style={{
+            color: '#f0a500',
+            cursor: onRate ? 'pointer' : 'default',
+            fontSize: '1.2rem',
+            transition: 'transform 0.2s ease',
+          }}
+          onClick={() => {
+            if (onRate) {
+              onRate(star);
+            }
+          }}
+          onMouseEnter={(e) => {
+            if (onRate) {
+              e.currentTarget.style.transform =
+                'scale(1.25)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (onRate) {
+              e.currentTarget.style.transform =
+                'scale(1)';
+            }
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// ============================================================
+// COURSES
+// ============================================================
 
 const Courses = () => {
   const { darkMode } = useLang();
 
   // ============================================================
-  // THEME
+  // COLORS
   // ============================================================
 
   const dm = {
@@ -62,54 +74,58 @@ const Courses = () => {
     input: darkMode ? '#1e2130' : '#ffffff',
     inputBorder: darkMode ? '#3a4060' : '#dddddd',
     inputColor: darkMode ? '#e0e6f0' : '#333333',
+
     catActive: darkMode ? '#ffffff' : '#ffffff',
     catActiveBg: darkMode ? '#2a3580' : '#003366',
     catBorder: darkMode ? '#a0b4ff' : '#003366',
     catInactive: darkMode ? '#a0b4ff' : '#003366',
+
     reviewBg: darkMode ? '#161a28' : '#ffffff',
-    successBg: darkMode
-      ? '#0d2318'
-      : '#f0fff4',
+    successBg: darkMode ? '#0d2318' : '#f0fff4',
+
     shadow: darkMode
       ? '0 4px 20px rgba(0,0,0,0.4)'
       : '0 4px 15px rgba(0,0,0,0.08)',
-    tagBg: darkMode
-      ? '#2a3050'
-      : '#f0f0f0',
-    tagColor: darkMode
-      ? '#a0b4ff'
-      : '#555555',
-    btnBack: darkMode
-      ? '#2a3580'
-      : '#003366',
+
+    tagBg: darkMode ? '#2a3050' : '#f0f0f0',
+    tagColor: darkMode ? '#a0b4ff' : '#555555',
+
+    btnBack: darkMode ? '#2a3580' : '#003366',
+
+    lessonActive: darkMode
+      ? '#252c52'
+      : '#eef4ff',
+
+    lessonCompleted: darkMode
+      ? '#123525'
+      : '#ecfdf5',
   };
 
   // ============================================================
-  // COURSES
+  // COURSES STATE
   // ============================================================
 
   const [courses, setCourses] = useState([]);
   const [selected, setSelected] = useState(null);
 
+  // ============================================================
+  // SEARCH
+  // ============================================================
+
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
 
   // ============================================================
-  // REVIEWS
-  // ============================================================
-
-  const [reviews, setReviews] = useState([]);
-  const [myRating, setMyRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  // ============================================================
-  // USER + ENROLLMENT
+  // USER
   // ============================================================
 
   const [user, setUser] = useState(null);
-  const [enrollment, setEnrollment] =
-    useState(null);
+
+  // ============================================================
+  // ENROLLMENT
+  // ============================================================
+
+  const [enrollment, setEnrollment] = useState(null);
 
   // ============================================================
   // LESSONS
@@ -121,17 +137,21 @@ const Courses = () => {
 
   const [lessonProgress, setLessonProgress] =
     useState([]);
+[7/23/2026 10:48 PM] Ah Mm: // ============================================================
+  // REVIEWS
+  // ============================================================
 
-  const [learningMode, setLearningMode] =
-    useState(false);
+  const [reviews, setReviews] = useState([]);
+
+  const [myRating, setMyRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   // ============================================================
   // LOADING
   // ============================================================
 
-  const [loading, setLoading] =
-    useState(true);
-
+  const [loading, setLoading] = useState(true);
   const [reviewLoading, setReviewLoading] =
     useState(false);
 
@@ -141,7 +161,7 @@ const Courses = () => {
   const [lessonsLoading, setLessonsLoading] =
     useState(false);
 
-  const [completingLesson, setCompletingLesson] =
+  const [lessonSaving, setLessonSaving] =
     useState(false);
 
   // ============================================================
@@ -158,7 +178,7 @@ const Courses = () => {
     useState('');
 
   // ============================================================
-  // LOAD COURSES + USER
+  // LOAD USER + COURSES
   // ============================================================
 
   useEffect(() => {
@@ -167,13 +187,10 @@ const Courses = () => {
         setLoading(true);
 
         const {
-          data: {
-            user: currentUser,
-          },
-        } =
-          await supabase.auth.getUser();
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
 
-        setUser(currentUser);
+        setUser(currentUser || null);
 
         const {
           data: coursesData,
@@ -191,9 +208,7 @@ const Courses = () => {
             coursesError
           );
         } else {
-          setCourses(
-            coursesData || []
-          );
+          setCourses(coursesData || []);
         }
 
         setTimeout(() => {
@@ -213,17 +228,26 @@ const Courses = () => {
   }, []);
 
   // ============================================================
-  // SELECTED COURSE
+  // WHEN COURSE SELECTED
   // ============================================================
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected) {
+      return;
+    }
 
     setDetailsVisible(false);
 
     setTimeout(() => {
       setDetailsVisible(true);
     }, 100);
+
+    setSelectedLesson(null);
+    setLessons([]);
+    setLessonProgress([]);
+    setReviews([]);
+    setEnrollment(null);
+    setMessage('');
 
     fetchReviews();
     checkEnrollment();
@@ -234,7 +258,9 @@ const Courses = () => {
   // ============================================================
 
   const fetchReviews = async () => {
-    if (!selected) return;
+    if (!selected) {
+      return;
+    }
 
     setReviewLoading(true);
 
@@ -245,10 +271,7 @@ const Courses = () => {
       } = await supabase
         .from('reviews')
         .select('*')
-        .eq(
-          'course_id',
-          selected.id
-        )
+        .eq('course_id', selected.id)
         .order('id', {
           ascending: false,
         });
@@ -281,47 +304,53 @@ const Courses = () => {
       return;
     }
 
-    const {
-      data,
-      error,
-    } = await supabase
-      .from('enrollments')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq(
-        'course_id',
-        selected.id
-      )
-      .maybeSingle();
+    try {
+      const {
+        data,
+        error,
+      } = await supabase
+        .from('enrollments')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('course_id', selected.id)
+        .maybeSingle();
 
-    if (error) {
+      if (error) {
+        console.error(
+[7/23/2026 10:48 PM] Ah Mm: 'Enrollment check error:',
+          error
+        );
+        return;
+      }
+
+      setEnrollment(data || null);
+
+      if (data) {
+        await fetchLessons();
+      }
+    } catch (error) {
       console.error(
-        'Enrollment check error:',
+        'Unexpected enrollment error:',
         error
       );
-
-      setEnrollment(null);
-      return;
     }
-
-    setEnrollment(data);
   };
 
   // ============================================================
-  // LOAD LESSONS
+  // FETCH LESSONS
   // ============================================================
 
-  const loadLessons = async (
-    courseId
-  ) => {
-    if (!courseId) return [];
+  const fetchLessons = async () => {
+    if (!selected || !user) {
+      return;
+    }
 
     setLessonsLoading(true);
 
     try {
-      // ========================================================
-      // GET LESSONS FOR CURRENT COURSE
-      // ========================================================
+      // --------------------------------------------------------
+      // GET LESSONS
+      // --------------------------------------------------------
 
       const {
         data: lessonsData,
@@ -330,18 +359,17 @@ const Courses = () => {
         .from('lessons')
         .select(
           `
-          id,
-          course_id,
-          title,
-          description,
-          content,
-          lesson_order
+            id,
+            course_id,
+            title,
+            description,
+            content,
+            lesson_order,
+            video_uri,
+            created_at
           `
         )
-        .eq(
-          'course_id',
-          courseId
-        )
+        .eq('course_id', selected.id)
         .order('lesson_order', {
           ascending: true,
         });
@@ -352,92 +380,78 @@ const Courses = () => {
           lessonsError
         );
 
-        setMessage(
-          'Could not load course lessons.'
-        );
-
-        return [];
+        setLessons([]);
+        return;
       }
 
       const loadedLessons =
         lessonsData || [];
 
-      setLessons(
-        loadedLessons
-      );
+      setLessons(loadedLessons);
 
-      // ========================================================
-      // LOAD PROGRESS
-      // IMPORTANT:
-      // user_id + course_id
-      // ========================================================
+      // --------------------------------------------------------
+      // GET LESSON PROGRESS
+      // --------------------------------------------------------
 
-      if (
-        user &&
-        loadedLessons.length > 0
-      ) {
-        const lessonIds =
+      const {
+        data: progressData,
+        error: progressError,
+      } = await supabase
+        .from('lesson_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .in(
+          'lesson_id',
           loadedLessons.map(
-            (lesson) =>
-              lesson.id
-          );
-
-        const {
-          data: progressData,
-          error: progressError,
-        } = await supabase
-          .from('lesson_progress')
-          .select(
-            `
-            id,
-            user_id,
-            course_id,
-            lesson_id,
-            completed,
-            completed_at
-            `
+            (lesson) => lesson.id
           )
-          .eq(
-            'user_id',
-            user.id
-          )
-          .eq(
-            'course_id',
-            courseId
-          )
-          .in(
-            'lesson_id',
-            lessonIds
-          );
+        );
 
-        if (progressError) {
-          console.error(
-            'Error loading lesson progress:',
-            progressError
-          );
+      if (progressError) {
+        console.error(
+          'Error loading lesson progress:',
+          progressError
+        );
 
-          setLessonProgress([]);
-        } else {
-          setLessonProgress(
-            progressData || []
-          );
-        }
-      } else {
         setLessonProgress([]);
+      } else {
+        setLessonProgress(
+          progressData || []
+        );
       }
 
-      return loadedLessons;
+      // --------------------------------------------------------
+      // SELECT FIRST UNCOMPLETED LESSON
+      // --------------------------------------------------------
+
+      if (loadedLessons.length > 0) {
+        const progressRows =
+          progressData || [];
+
+        const firstUncompleted =
+          loadedLessons.find(
+            (lesson) => {
+              const progress =
+                progressRows.find(
+                  (item) =>
+                    item.lesson_id ===
+                    lesson.id
+                );
+
+              return !progress?.completed;
+            }
+          );
+
+        setSelectedLesson(
+          firstUncompleted ||
+            loadedLessons[0]
+        );
+      }
     } catch (error) {
       console.error(
         'Unexpected lessons error:',
         error
       );
-
-      setMessage(
-        'Something went wrong while loading lessons.'
-      );
-
-      return [];
     } finally {
       setLessonsLoading(false);
     }
@@ -457,7 +471,9 @@ const Courses = () => {
       return;
     }
 
-    if (!selected) return;
+    if (!selected) {
+      return;
+    }
 
     if (enrollment) {
       setMessage(
@@ -491,11 +507,9 @@ const Courses = () => {
           error
         );
 
-        if (
-          error.code === '23505'
-        ) {
+        if (error.code === '23505') {
           setMessage(
-            'You are already enrolled in this course.'
+[7/23/2026 10:48 PM] Ah Mm: 'You are already enrolled in this course.'
           );
 
           await checkEnrollment();
@@ -510,14 +524,12 @@ const Courses = () => {
 
       setEnrollment(data);
 
-      // ========================================================
+      // --------------------------------------------------------
       // UPDATE STUDENTS COUNT
-      // ========================================================
+      // --------------------------------------------------------
 
       const currentStudents =
-        Number(
-          selected.students
-        ) || 0;
+        Number(selected.students) || 0;
 
       const {
         error: updateError,
@@ -527,10 +539,7 @@ const Courses = () => {
           students:
             currentStudents + 1,
         })
-        .eq(
-          'id',
-          selected.id
-        );
+        .eq('id', selected.id);
 
       if (updateError) {
         console.error(
@@ -539,31 +548,27 @@ const Courses = () => {
         );
       }
 
-      setSelected({
+      const updatedCourse = {
         ...selected,
         students:
           currentStudents + 1,
-      });
+      };
 
-      setCourses(
-        (prevCourses) =>
-          prevCourses.map(
-            (course) =>
-              course.id ===
-              selected.id
-                ? {
-                    ...course,
-                    students:
-                      currentStudents +
-                      1,
-                  }
-                : course
-          )
+      setSelected(updatedCourse);
+
+      setCourses((prevCourses) =>
+        prevCourses.map((course) =>
+          course.id === selected.id
+            ? updatedCourse
+            : course
+        )
       );
 
       setMessage(
         'You have successfully enrolled in this course! 🎉'
       );
+
+      await fetchLessons();
     } catch (error) {
       console.error(
         'Unexpected enrollment error:',
@@ -579,449 +584,273 @@ const Courses = () => {
   };
 
   // ============================================================
-  // START LEARNING
-  // ============================================================
-
-  const handleStartLearning =
-    async () => {
-      if (
-        !selected ||
-        !enrollment ||
-        !user
-      ) {
-        return;
-      }
-
-      setMessage('');
-
-      const lessonsData =
-        await loadLessons(
-          selected.id
-        );
-
-      if (
-        !lessonsData ||
-        lessonsData.length === 0
-      ) {
-        setMessage(
-          'No lessons are available for this course yet.'
-        );
-
-        return;
-      }
-
-      // ========================================================
-      // LOAD CURRENT COURSE PROGRESS
-      // ========================================================
-
-      const lessonIds =
-        lessonsData.map(
-          (lesson) =>
-            lesson.id
-        );
-
-      const {
-        data: progressData,
-        error: progressError,
-      } = await supabase
-        .from('lesson_progress')
-        .select(
-          `
-          id,
-          user_id,
-          course_id,
-          lesson_id,
-          completed,
-          completed_at
-          `
-        )
-        .eq(
-          'user_id',
-          user.id
-        )
-        .eq(
-          'course_id',
-          selected.id
-        )
-        .in(
-          'lesson_id',
-          lessonIds
-        );
-
-      if (progressError) {
-        console.error(
-          'Error loading current progress:',
-          progressError
-        );
-      }
-
-      const currentProgress =
-        progressData || [];
-
-      setLessonProgress(
-        currentProgress
-      );
-
-      // ========================================================
-      // COMPLETED LESSON IDS
-      // ========================================================
-
-      const completedIds =
-        currentProgress
-          .filter(
-            (item) =>
-              item.completed ===
-              true
-          )
-          .map(
-            (item) =>
-              item.lesson_id
-          );
-
-      // ========================================================
-      // FIRST UNCOMPLETED LESSON
-      // ========================================================
-
-      const firstUncompleted =
-        lessonsData.find(
-          (lesson) =>
-            !completedIds.includes(
-              lesson.id
-            )
-        );
-
-      // If everything is completed,
-      // open the last lesson
-      const firstLesson =
-        firstUncompleted ||
-        lessonsData[
-          lessonsData.length - 1
-        ];
-
-      setSelectedLesson(
-        firstLesson
-      );
-
-      setLearningMode(true);
-
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
-    };
-
-  // ============================================================
-  // CHECK LESSON COMPLETED
+  // CHECK IF LESSON COMPLETED
   // ============================================================
 
   const isLessonCompleted = (
     lessonId
   ) => {
-    if (!lessonId) {
-      return false;
-    }
-
     return lessonProgress.some(
       (item) =>
-        item.lesson_id ===
-          lessonId &&
-        item.course_id ===
-          selected?.id &&
+        item.lesson_id === lessonId &&
         item.completed === true
     );
   };
 
   // ============================================================
-  // CALCULATE PROGRESS
+  // CALCULATE COURSE PROGRESS
   // ============================================================
 
-  const calculateProgress = (
-    currentLessons = lessons
-  ) => {
-    if (
-      !currentLessons ||
-      currentLessons.length === 0
-    ) {
-      return 0;
+  const calculatedProgress = useMemo(() => {
+    if (!lessons.length) {
+      return Number(
+        enrollment?.progress || 0
+      );
     }
 
     const completedCount =
-      currentLessons.filter(
-        (lesson) =>
-          isLessonCompleted(
-            lesson.id
-          )
+      lessons.filter((lesson) =>
+        isLessonCompleted(lesson.id)
       ).length;
 
     return Math.round(
       (completedCount /
-        currentLessons.length) *
+        lessons.length) *
         100
     );
-  };
+  }, [
+    lessons,
+    lessonProgress,
+    enrollment,
+  ]);
 
   // ============================================================
-  // COMPLETE LESSON
+  // MARK LESSON COMPLETED
   // ============================================================
 
-  const handleCompleteLesson =
-    async () => {
-      if (
-        !user ||
-        !selected ||
-        !selectedLesson
-      ) {
-        return;
-      }
+  const handleCompleteLesson = async () => {
+    if (
+      !user ||
+      !selected ||
+      !selectedLesson ||
+      !enrollment
+    ) {
+      return;
+    }
 
-      if (
-        isLessonCompleted(
+    setLessonSaving(true);
+    setMessage('');
+
+    try {
+      // --------------------------------------------------------
+      // CHECK EXISTING PROGRESS
+      // --------------------------------------------------------
+
+      const {
+        data: existingProgress,
+        error: existingError,
+      } = await supabase
+        .from('lesson_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq(
+          'lesson_id',
           selectedLesson.id
         )
-      ) {
+        .maybeSingle();
+
+      if (existingError) {
+        console.error(
+          'Progress check error:',
+          existingError
+        );
+
+        setMessage(
+          'Could not update lesson progress.'
+        );
+
         return;
       }
 
-      setCompletingLesson(true);
-      setMessage('');
+      // --------------------------------------------------------
+      // INSERT OR UPDATE PROGRESS
+      // --------------------------------------------------------
 
-      try {
-        // ======================================================
-        // SAVE LESSON PROGRESS
-        // IMPORTANT:
-        // course_id INCLUDED
-        // ======================================================
+      let progressData;
 
+      if (existingProgress) {
         const {
           data,
           error,
         } = await supabase
           .from('lesson_progress')
-          .upsert(
-            {
-              user_id: user.id,
-              course_id:
-                selected.id,
-              lesson_id:
-                selectedLesson.id,
-              completed: true,
-              completed_at:
-                new Date().toISOString(),
-            },
-            {
-              onConflict:
-                'user_id,course_id,lesson_id',
-            }
+          .update({
+            completed: true,
+          })
+          .eq(
+            'id',
+            existingProgress.id
           )
           .select()
           .single();
 
         if (error) {
-          console.error(
-            'Lesson progress error:',
-            error
-          );
-
-          setMessage(
-            'Could not save lesson progress.'
-          );
-
-          return;
+          throw error;
         }
-
-        // ======================================================
-        // UPDATE LOCAL PROGRESS
-        // ======================================================
-
-        setLessonProgress(
-          (prev) => {
-            const exists =
-              prev.some(
-                (item) =>
-                  item.lesson_id ===
-                    selectedLesson.id &&
-                  item.course_id ===
-                    selected.id
-              );
-
-            if (exists) {
-              return prev.map(
-                (item) =>
-                  item.lesson_id ===
-                      selectedLesson.id &&
-                    item.course_id ===
-                      selected.id
-                    ? data
-                    : item
-              );
-            }
-
-            return [
-              ...prev,
-              data,
-            ];
-          }
-        );
-
-        // ======================================================
-        // CALCULATE NEW PROGRESS
-        // ======================================================
-
-        const completedCount =
-          lessons.filter(
-            (lesson) => {
-              if (
-                lesson.id ===
-                selectedLesson.id
-              ) {
-                return true;
-              }
-
-              return isLessonCompleted(
-                lesson.id
-              );
-            }
-          ).length;
-
-        const newProgress =
-          lessons.length > 0
-            ? Math.round(
-                (completedCount /
-                  lessons.length) *
-                  100
-              )
-            : 0;
-
-        // ======================================================
-        // UPDATE ENROLLMENT
-        // ======================================================
-
+[7/23/2026 10:48 PM] Ah Mm: progressData = data;
+      } else {
         const {
-          data: updatedEnrollment,
-          error:
-            enrollmentError,
+          data,
+          error,
         } = await supabase
-          .from('enrollments')
-          .update({
-            progress:
-              newProgress,
-            completed:
-              newProgress >= 100,
+          .from('lesson_progress')
+          .insert({
+            user_id: user.id,
+            lesson_id:
+              selectedLesson.id,
+            completed: true,
           })
-          .eq(
-            'user_id',
-            user.id
-          )
-          .eq(
-            'course_id',
-            selected.id
-          )
           .select()
           .single();
 
-        if (enrollmentError) {
-          console.error(
-            'Enrollment progress error:',
-            enrollmentError
-          );
-        } else {
-          setEnrollment(
-            updatedEnrollment
-          );
+        if (error) {
+          throw error;
         }
 
-        setMessage(
-          newProgress >= 100
-            ? 'Congratulations! You completed the course! 🎉'
-            : 'Lesson completed successfully! ✅'
-        );
-      } catch (error) {
-        console.error(
-          'Unexpected complete lesson error:',
-          error
-        );
-
-        setMessage(
-          'Something went wrong. Please try again.'
-        );
-      } finally {
-        setCompletingLesson(false);
-      }
-    };
-
-  // ============================================================
-  // NEXT LESSON
-  // ============================================================
-
-  const handleNextLesson =
-    () => {
-      if (
-        !selectedLesson ||
-        lessons.length === 0
-      ) {
-        return;
+        progressData = data;
       }
 
-      if (
-        !isLessonCompleted(
-          selectedLesson.id
-        )
-      ) {
-        setMessage(
-          'Please complete the current lesson first.'
-        );
+      // --------------------------------------------------------
+      // UPDATE LOCAL PROGRESS
+      // --------------------------------------------------------
 
-        return;
-      }
-
-      const currentIndex =
-        lessons.findIndex(
-          (lesson) =>
-            lesson.id ===
+      setLessonProgress((prev) => {
+        const exists = prev.some(
+          (item) =>
+            item.lesson_id ===
             selectedLesson.id
         );
 
-      if (
-        currentIndex === -1
-      ) {
-        return;
-      }
+        if (exists) {
+          return prev.map((item) =>
+            item.lesson_id ===
+            selectedLesson.id
+              ? progressData
+              : item
+          );
+        }
 
-      const nextLesson =
-        lessons[
-          currentIndex + 1
+        return [
+          ...prev,
+          progressData,
         ];
+      });
 
-      if (nextLesson) {
-        setSelectedLesson(
-          nextLesson
-        );
+      // --------------------------------------------------------
+      // CALCULATE NEW PROGRESS
+      // --------------------------------------------------------
 
-        setMessage('');
+      const completedCount =
+        lessons.filter((lesson) => {
+          if (
+            lesson.id ===
+            selectedLesson.id
+          ) {
+            return true;
+          }
 
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth',
-        });
-      } else {
-        setMessage(
-          'You have completed all available lessons! 🎉'
-        );
+          return isLessonCompleted(
+            lesson.id
+          );
+        }).length;
+
+      const newProgress =
+        lessons.length > 0
+          ? Math.round(
+              (completedCount /
+                lessons.length) *
+                100
+            )
+          : 100;
+
+      const courseCompleted =
+        newProgress >= 100;
+
+      // --------------------------------------------------------
+      // UPDATE ENROLLMENT
+      // --------------------------------------------------------
+
+      const {
+        data: updatedEnrollment,
+        error: enrollmentError,
+      } = await supabase
+        .from('enrollments')
+        .update({
+          progress: newProgress,
+          completed:
+            courseCompleted,
+        })
+        .eq('id', enrollment.id)
+        .select()
+        .single();
+
+      if (enrollmentError) {
+        throw enrollmentError;
       }
-    };
+
+      setEnrollment(
+        updatedEnrollment
+      );
+
+      setMessage(
+        courseCompleted
+          ? 'Congratulations! You completed the course! 🎉🏆'
+          : 'Lesson completed successfully! ✅'
+      );
+    } catch (error) {
+      console.error(
+        'Complete lesson error:',
+        error
+      );
+
+      setMessage(
+        'Could not save your progress. Please try again.'
+      );
+    } finally {
+      setLessonSaving(false);
+    }
+  };
 
   // ============================================================
-  // SELECT LESSON
+  // GO TO NEXT LESSON
   // ============================================================
 
-  const handleSelectLesson = (
-    lesson
-  ) => {
+  const handleNextLesson = () => {
+    if (!selectedLesson) {
+      return;
+    }
+
+    const currentIndex =
+      lessons.findIndex(
+        (lesson) =>
+          lesson.id ===
+          selectedLesson.id
+      );
+
+    if (
+      currentIndex === -1 ||
+      currentIndex >=
+        lessons.length - 1
+    ) {
+      setMessage(
+        'You have reached the last lesson. 🎉'
+      );
+      return;
+    }
+
     setSelectedLesson(
-      lesson
+      lessons[currentIndex + 1]
     );
-
-    setMessage('');
 
     window.scrollTo({
       top: 0,
@@ -1030,98 +859,109 @@ const Courses = () => {
   };
 
   // ============================================================
-  // EXIT LEARNING
+  // PREVIOUS LESSON
   // ============================================================
 
-  const handleExitLearning =
-    () => {
-      setLearningMode(false);
-      setSelectedLesson(null);
-      setLessons([]);
-      setLessonProgress([]);
-      setMessage('');
-    };
+  const handlePreviousLesson = () => {
+    if (!selectedLesson) {
+      return;
+    }
+
+    const currentIndex =
+      lessons.findIndex(
+        (lesson) =>
+          lesson.id ===
+          selectedLesson.id
+      );
+
+    if (
+      currentIndex <= 0
+    ) {
+      return;
+    }
+
+    setSelectedLesson(
+      lessons[currentIndex - 1]
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
 
   // ============================================================
-  // SUBMIT REVIEW
+[7/23/2026 10:48 PM] Ah Mm: // SUBMIT REVIEW
   // ============================================================
 
-  const handleSubmitReview =
-    async () => {
-      if (!user) {
-        setMessage(
-          'Please login first to leave a review.'
+  const handleSubmitReview = async () => {
+    if (!user) {
+      setMessage(
+        'Please login first to leave a review.'
+      );
+      return;
+    }
+
+    if (!myRating) {
+      setMessage(
+        'Please select a rating first.'
+      );
+      return;
+    }
+
+    if (!selected) {
+      return;
+    }
+
+    setReviewLoading(true);
+
+    try {
+      const {
+        error,
+      } = await supabase
+        .from('reviews')
+        .upsert(
+          {
+            course_id:
+              selected.id,
+            user_id: user.id,
+            rating: myRating,
+            comment:
+              comment.trim(),
+          },
+          {
+            onConflict:
+              'user_id,course_id',
+          }
         );
-        return;
+
+      if (error) {
+        throw error;
       }
 
-      if (!myRating) {
-        setMessage(
-          'Please select a rating first.'
-        );
-        return;
-      }
+      setSubmitted(true);
 
-      if (!selected) return;
+      setMessage(
+        'Your review has been submitted successfully! ⭐'
+      );
 
-      setReviewLoading(true);
+      await fetchReviews();
+    } catch (error) {
+      console.error(
+        'Review error:',
+        error
+      );
 
-      try {
-        const {
-          error,
-        } = await supabase
-          .from('reviews')
-          .upsert(
-            {
-              course_id:
-                selected.id,
-              user_id: user.id,
-              rating: myRating,
-              comment:
-                comment.trim(),
-            },
-            {
-              onConflict:
-                'user_id,course_id',
-            }
-          );
-
-        if (error) {
-          console.error(
-            'Review error:',
-            error
-          );
-
-          setMessage(
-            'Could not submit your review.'
-          );
-
-          return;
-        }
-
-        setSubmitted(true);
-
-        setMessage(
-          'Your review has been submitted successfully! ⭐'
-        );
-
-        await fetchReviews();
-      } catch (error) {
-        console.error(
-          'Unexpected review error:',
-          error
-        );
-
-        setMessage(
-          'Something went wrong. Please try again.'
-        );
-      } finally {
-        setReviewLoading(false);
-      }
-    };
+      setMessage(
+        'Could not submit your review.'
+      );
+    } finally {
+      setReviewLoading(false);
+    }
+  };
 
   // ============================================================
-  // BACK
+  // BACK TO COURSES
   // ============================================================
 
   const handleBack = () => {
@@ -1129,16 +969,18 @@ const Courses = () => {
 
     setTimeout(() => {
       setSelected(null);
+      setSelectedLesson(null);
+
+      setLessons([]);
+      setLessonProgress([]);
+
       setReviews([]);
       setEnrollment(null);
+
       setSubmitted(false);
       setMyRating(0);
       setComment('');
       setMessage('');
-      setLessons([]);
-      setLessonProgress([]);
-      setSelectedLesson(null);
-      setLearningMode(false);
     }, 250);
   };
 
@@ -1146,20 +988,18 @@ const Courses = () => {
   // AVERAGE RATING
   // ============================================================
 
-  const avgRating =
-    reviews.length > 0
-      ? (
-          reviews.reduce(
-            (total, review) =>
-              total +
-              Number(
-                review.rating || 0
-              ),
-            0
-          ) /
-          reviews.length
-        ).toFixed(1)
-      : null;
+  const avgRating = reviews.length
+    ? (
+        reviews.reduce(
+          (total, review) =>
+            total +
+            Number(
+              review.rating || 0
+            ),
+          0
+        ) / reviews.length
+      ).toFixed(1)
+    : null;
 
   // ============================================================
   // CATEGORIES
@@ -1178,41 +1018,33 @@ const Courses = () => {
   ];
 
   // ============================================================
-  // FILTER
+  // FILTER COURSES
   // ============================================================
 
-  const filtered =
-    courses.filter(
-      (course) => {
-        const matchesCategory =
-          category === 'All' ||
-          course.category ===
-            category;
+  const filtered = courses.filter(
+    (course) => {
+      const matchesCategory =
+        category === 'All' ||
+        course.category ===
+          category;
 
-        const searchText =
-          search
-            .trim()
-            .toLowerCase();
+      const searchText =
+        search.toLowerCase();
 
-        const matchesSearch =
-          !searchText ||
-          course.title
-            ?.toLowerCase()
-            .includes(
-              searchText
-            ) ||
-          course.category
-            ?.toLowerCase()
-            .includes(
-              searchText
-            );
+      const matchesSearch =
+        course.title
+          ?.toLowerCase()
+          .includes(searchText) ||
+        course.category
+          ?.toLowerCase()
+          .includes(searchText);
 
-        return (
-          matchesCategory &&
-          matchesSearch
-        );
-      }
-    );
+      return (
+        matchesCategory &&
+        matchesSearch
+      );
+    }
+  );
 
   // ============================================================
   // LOADING
@@ -1257,709 +1089,50 @@ const Courses = () => {
   }
 
   // ============================================================
-  // LEARNING MODE
-  // ============================================================
-
-  if (
-    learningMode &&
-    selected &&
-    selectedLesson
-  ) {
-    const currentProgress =
-      calculateProgress();
-
-    const currentIndex =
-      lessons.findIndex(
-        (lesson) =>
-          lesson.id ===
-          selectedLesson.id
-      );
-
-    const hasNextLesson =
-      currentIndex <
-      lessons.length - 1;
-
-    const completed =
-      isLessonCompleted(
-        selectedLesson.id
-      );
-
-    return (
-      <section
-        style={{
-          minHeight: '100vh',
-          background: dm.bg,
-          padding:
-            '30px 20px',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-          }}
-        >
-          {/* TOP BAR */}
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent:
-                'space-between',
-              alignItems:
-                'center',
-              gap: '15px',
-              flexWrap:
-                'wrap',
-              marginBottom:
-                '25px',
-            }}
-          >
-            <button
-              onClick={
-                handleExitLearning
-              }
-              style={{
-                padding:
-                  '10px 18px',
-                background:
-                  dm.btnBack,
-                color:
-                  'white',
-                border:
-                  'none',
-                borderRadius:
-                  '8px',
-                cursor:
-                  'pointer',
-                fontWeight:
-                  '600',
-              }}
-            >
-              <i className="fas fa-arrow-left" />{' '}
-              Back to Course
-            </button>
-
-            <div
-              style={{
-                color:
-                  dm.heading,
-                fontWeight:
-                  '700',
-              }}
-            >
-              {selected.title}
-            </div>
-          </div>
-
-          {/* PROGRESS */}
-
-          <div
-            style={{
-              background:
-                dm.reviewBg,
-              padding:
-                '20px',
-              borderRadius:
-                '12px',
-              boxShadow:
-                dm.shadow,
-              marginBottom:
-                '25px',
-            }}
-          >
-            <div
-              style={{
-                display:
-                  'flex',
-                justifyContent:
-                  'space-between',
-                marginBottom:
-                  '10px',
-              }}
-            >
-              <strong
-                style={{
-                  color:
-                    dm.heading,
-                }}
-              >
-                Course Progress
-              </strong>
-
-              <span
-                style={{
-                  color:
-                    dm.text,
-                }}
-              >
-                {currentProgress}%
-              </span>
-            </div>
-
-            <div
-              style={{
-                width:
-                  '100%',
-                height:
-                  '10px',
-                background:
-                  darkMode
-                    ? '#2a2d3d'
-                    : '#e5e7eb',
-                borderRadius:
-                  '10px',
-                overflow:
-                  'hidden',
-              }}
-            >
-              <div
-                style={{
-                  width: `${currentProgress}%`,
-                  height:
-                    '100%',
-                  background:
-                    'linear-gradient(90deg, #003366, #f0a500)',
-                  transition:
-                    'width 0.5s ease',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* LEARNING LAYOUT */}
-
-          <div
-            className="learning-layout"
-            style={{
-              display:
-                'grid',
-              gridTemplateColumns:
-                'minmax(0, 2fr) minmax(280px, 1fr)',
-              gap: '25px',
-              alignItems:
-                'start',
-            }}
-          >
-            {/* LESSON CONTENT */}
-
-            <div
-              style={{
-                background:
-                  dm.reviewBg,
-                borderRadius:
-                  '15px',
-                padding:
-                  '30px',
-                boxShadow:
-                  dm.shadow,
-              }}
-            >
-              <div
-                style={{
-                  display:
-                    'flex',
-                  alignItems:
-                    'center',
-                  gap: '12px',
-                  marginBottom:
-                    '20px',
-                }}
-              >
-                <div
-                  style={{
-                    width:
-                      '50px',
-                    height:
-                      '50px',
-                    borderRadius:
-                      '12px',
-                    background:
-                      'linear-gradient(135deg, #003366, #005599)',
-                    display:
-                      'flex',
-                    alignItems:
-                      'center',
-                    justifyContent:
-                      'center',
-                    color:
-                      '#f0a500',
-                    fontSize:
-                      '1.4rem',
-                  }}
-                >
-                  <i className="fas fa-play" />
-                </div>
-
-                <div>
-                  <p
-                    style={{
-                      color:
-                        dm.subtext,
-                      margin:
-                        '0 0 5px',
-                      fontSize:
-                        '0.85rem',
-                    }}
-                  >
-                    Lesson{' '}
-                    {currentIndex +
-                      1}{' '}
-                    of{' '}
-                    {
-                      lessons.length
-                    }
-                  </p>
-
-                  <h1
-                    style={{
-                      color:
-                        dm.heading,
-                      margin: 0,
-                    }}
-                  >
-                    {
-                      selectedLesson.title
-                    }
-                  </h1>
-                </div>
-              </div>
-
-              {/* DESCRIPTION */}
-
-              {selectedLesson.description && (
-                <p
-                  style={{
-                    color:
-                      dm.subtext,
-                    fontSize:
-                      '1.05rem',
-                    lineHeight:
-                      '1.7',
-                    marginBottom:
-                      '25px',
-                  }}
-                >
-                  {
-                    selectedLesson.description
-                  }
-                </p>
-              )}
-
-              {/* CONTENT */}
-
-              <div
-                style={{
-                  color:
-                    dm.text,
-                  fontSize:
-                    '1rem',
-                  lineHeight:
-                    '1.9',
-                  whiteSpace:
-                    'pre-wrap',
-                  wordBreak:
-                    'break-word',
-                  borderTop:
-                    `1px solid ${dm.cardBorder}`,
-                  paddingTop:
-                    '25px',
-                }}
-              >
-                {selectedLesson.content ||
-                  'No content available for this lesson yet.'}
-              </div>
-
-              {/* MESSAGE */}
-
-              {message && (
-                <div
-                  style={{
-                    marginTop:
-                      '25px',
-                    padding:
-                      '15px',
-                    borderRadius:
-                      '10px',
-                    background:
-                      message.includes(
-                        'successfully'
-                      ) ||
-                      message.includes(
-                        'Congratulations'
-                      )
-                        ? dm.successBg
-                        : dm.tagBg,
-                    color:
-                      message.includes(
-                        'successfully'
-                      ) ||
-                      message.includes(
-                        'Congratulations'
-                      )
-                        ? '#10b981'
-                        : dm.heading,
-                    fontWeight:
-                      '600',
-                    textAlign:
-                      'center',
-                  }}
-                >
-                  {message}
-                </div>
-              )}
-
-              {/* ACTIONS */}
-
-              <div
-                style={{
-                  display:
-                    'flex',
-                  gap: '12px',
-                  marginTop:
-                    '30px',
-                  flexWrap:
-                    'wrap',
-                }}
-              >
-                {!completed ? (
-                  <button
-                    onClick={
-                      handleCompleteLesson
-                    }
-                    disabled={
-                      completingLesson
-                    }
-                    style={{
-                      flex: 1,
-                      minWidth:
-                        '200px',
-                      padding:
-                        '14px 20px',
-                      background:
-                        completingLesson
-                          ? '#888'
-                          : 'linear-gradient(90deg, #10b981, #059669)',
-                      color:
-                        'white',
-                      border:
-                        'none',
-                      borderRadius:
-                        '10px',
-                      fontWeight:
-                        '700',
-                      cursor:
-                        completingLesson
-                          ? 'not-allowed'
-                          : 'pointer',
-                    }}
-                  >
-                    <i
-                      className={
-                        completingLesson
-                          ? 'fas fa-spinner fa-spin'
-                          : 'fas fa-check'
-                      }
-                    />{' '}
-                    {completingLesson
-                      ? 'Saving...'
-                      : 'Mark as Complete'}
-                  </button>
-                ) : (
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth:
-                        '200px',
-                      padding:
-                        '14px 20px',
-                      background:
-                        dm.successBg,
-                      color:
-                        '#10b981',
-                      borderRadius:
-                        '10px',
-                      fontWeight:
-                        '700',
-                      textAlign:
-                        'center',
-                    }}
-                  >
-                    <i className="fas fa-check-circle" />{' '}
-                    Lesson Completed
-                  </div>
-                )}
-
-                {hasNextLesson && (
-                  <button
-                    onClick={
-                      handleNextLesson
-                    }
-                    disabled={
-                      !completed
-                    }
-                    style={{
-                      flex: 1,
-                      minWidth:
-                        '200px',
-                      padding:
-                        '14px 20px',
-                      background:
-                        completed
-                          ? dm.btnBack
-                          : '#999',
-                      color:
-                        'white',
-                      border:
-                        'none',
-                      borderRadius:
-                        '10px',
-                      fontWeight:
-                        '700',
-                      cursor:
-                        completed
-                          ? 'pointer'
-                          : 'not-allowed',
-                    }}
-                  >
-                    Next Lesson{' '}
-                    <i className="fas fa-arrow-right" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* LESSON LIST */}
-
-            <div
-              style={{
-                background:
-                  dm.reviewBg,
-                borderRadius:
-                  '15px',
-                padding:
-                  '20px',
-                boxShadow:
-                  dm.shadow,
-                position:
-                  'sticky',
-                top: '20px',
-              }}
-            >
-              <h3
-                style={{
-                  color:
-                    dm.heading,
-                  marginTop: 0,
-                  marginBottom:
-                    '20px',
-                }}
-              >
-                <i className="fas fa-list" />{' '}
-                Course Lessons
-              </h3>
-
-              {lessons.map(
-                (
-                  lesson,
-                  index
-                ) => {
-                  const isActive =
-                    selectedLesson.id ===
-                    lesson.id;
-
-                  const isCompleted =
-                    isLessonCompleted(
-                      lesson.id
-                    );
-
-                  return (
-                    <button
-                      key={
-                        lesson.id
-                      }
-                      onClick={() =>
-                        handleSelectLesson(
-                          lesson
-                        )
-                      }
-                      style={{
-                        width:
-                          '100%',
-                        display:
-                          'flex',
-                        alignItems:
-                          'center',
-                        gap:
-                          '12px',
-                        padding:
-                          '14px',
-                        marginBottom:
-                          '10px',
-                        textAlign:
-                          'left',
-                        background:
-                          isActive
-                            ? darkMode
-                              ? '#2a3580'
-                              : '#eaf2f8'
-                            : darkMode
-                            ? '#1e2130'
-                            : '#f8fafc',
-                        border:
-                          isActive
-                            ? `2px solid ${dm.btnBack}`
-                            : `1px solid ${dm.cardBorder}`,
-                        borderRadius:
-                          '10px',
-                        color:
-                          dm.text,
-                        cursor:
-                          'pointer',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width:
-                            '32px',
-                          height:
-                            '32px',
-                          minWidth:
-                            '32px',
-                          borderRadius:
-                            '50%',
-                          display:
-                            'flex',
-                          alignItems:
-                            'center',
-                          justifyContent:
-                            'center',
-                          background:
-                            isCompleted
-                              ? '#10b981'
-                              : dm.btnBack,
-                          color:
-                            'white',
-                          fontSize:
-                            '0.8rem',
-                          fontWeight:
-                            '700',
-                        }}
-                      >
-                        {isCompleted ? (
-                          <i className="fas fa-check" />
-                        ) : (
-                          index + 1
-                        )}
-                      </div>
-
-                      <div
-                        style={{
-                          flex: 1,
-                        }}
-                      >
-                        <div
-                          style={{
-                            color:
-                              isActive
-                                ? dm.heading
-                                : dm.text,
-                            fontWeight:
-                              '700',
-                            fontSize:
-                              '0.9rem',
-                          }}
-                        >
-                          {
-                            lesson.title
-                          }
-                        </div>
-
-                        <div
-                          style={{
-                            color:
-                              isCompleted
-                                ? '#10b981'
-                                : dm.subtext,
-                            fontSize:
-                              '0.75rem',
-                            marginTop:
-                              '4px',
-                          }}
-                        >
-                          {isCompleted
-                            ? 'Completed'
-                            : 'Not completed'}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                }
-              )}
-            </div>
-          </div>
-        </div>
-
-        <style>
-          {`
-            @media (max-width: 800px) {
-              .learning-layout {
-                grid-template-columns: 1fr !important;
-              }
-            }
-          `}
-        </style>
-      </section>
-    );
-  }
-
-  // ============================================================
-  // COURSE DETAILS
-  // ============================================================
+  // COURSE DETAILS + LEARNING
+[7/23/2026 10:48 PM] Ah Mm: // ============================================================
 
   if (selected) {
     return (
       <section
         style={{
-          padding:
-            '60px 20px',
+          padding: '40px 20px 80px',
           maxWidth:
-            '800px',
-          margin:
-            '0 auto',
-          background:
-            dm.bg,
-          minHeight:
-            '100vh',
+            enrollment
+              ? '1200px'
+              : '800px',
+          margin: '0 auto',
+          background: dm.bg,
+          minHeight: '100vh',
+
           opacity:
             detailsVisible
               ? 1
               : 0,
+
           transform:
             detailsVisible
               ? 'translateY(0)'
               : 'translateY(20px)',
+
           transition:
             'opacity 0.5s ease, transform 0.5s ease',
         }}
       >
+        {/* ================================================== */}
         {/* BACK */}
+        {/* ================================================== */}
 
         <button
-          onClick={
-            handleBack
-          }
+          onClick={handleBack}
           style={{
-            marginBottom:
-              '30px',
+            marginBottom: '30px',
             padding:
               '10px 20px',
             background:
               dm.btnBack,
-            color:
-              'white',
-            border:
-              'none',
+            color: 'white',
+            border: 'none',
             borderRadius:
               '8px',
             cursor:
@@ -1967,33 +1140,30 @@ const Courses = () => {
           }}
         >
           <i className="fas fa-arrow-left" />{' '}
-          Back
+          Back to Courses
         </button>
 
-        {/* COURSE INFO */}
+        {/* ================================================== */}
+        {/* COURSE HEADER */}
+        {/* ================================================== */}
 
         <div
           style={{
-            textAlign:
-              'center',
-            marginBottom:
-              '40px',
+            textAlign: 'center',
+            marginBottom: '40px',
           }}
         >
           <div
             style={{
-              width:
-                '90px',
-              height:
-                '90px',
+              width: '90px',
+              height: '90px',
               margin:
                 '0 auto 20px',
               borderRadius:
                 '50%',
               background:
                 'linear-gradient(135deg, #003366, #005599)',
-              display:
-                'flex',
+              display: 'flex',
               alignItems:
                 'center',
               justifyContent:
@@ -2019,33 +1189,33 @@ const Courses = () => {
                 dm.heading,
             }}
           >
-            {
-              selected.title
-            }
+            {selected.title}
           </h1>
 
-          <span
-            style={{
-              display:
-                'inline-block',
-              marginTop:
-                '10px',
-              padding:
-                '6px 15px',
-              background:
-                dm.tagBg,
-              color:
-                dm.tagColor,
-              borderRadius:
-                '20px',
-              fontSize:
-                '0.85rem',
-            }}
-          >
-            {
-              selected.category
-            }
-          </span>
+          {selected.category && (
+            <span
+              style={{
+                display:
+                  'inline-block',
+                marginTop:
+                  '10px',
+                padding:
+                  '6px 15px',
+                background:
+                  dm.tagBg,
+                color:
+                  dm.tagColor,
+                borderRadius:
+                  '20px',
+                fontSize:
+                  '0.85rem',
+              }}
+            >
+              {selected.category}
+            </span>
+          )}
+
+          {/* STATS */}
 
           <div
             style={{
@@ -2053,8 +1223,7 @@ const Courses = () => {
                 'flex',
               justifyContent:
                 'center',
-              gap:
-                '30px',
+              gap: '30px',
               flexWrap:
                 'wrap',
               marginTop:
@@ -2095,7 +1264,7 @@ const Courses = () => {
 
               <p
                 style={{
-                  color:
+[7/23/2026 10:48 PM] Ah Mm: color:
                     dm.text,
                   marginTop:
                     '5px',
@@ -2109,7 +1278,9 @@ const Courses = () => {
           </div>
         </div>
 
+        {/* ================================================== */}
         {/* ENROLLMENT */}
+        {/* ================================================== */}
 
         <div
           style={{
@@ -2161,9 +1332,7 @@ const Courses = () => {
               >
                 Your progress:{' '}
                 <strong>
-                  {enrollment.progress ||
-                    0}
-                  %
+                  {calculatedProgress}%
                 </strong>
               </p>
 
@@ -2187,65 +1356,18 @@ const Courses = () => {
               >
                 <div
                   style={{
-                    width: `${
-                      enrollment.progress ||
-                      0
-                    }%`,
+                    width: ${calculatedProgress}%,
                     height:
                       '100%',
                     background:
                       'linear-gradient(90deg, #003366, #f0a500)',
                     borderRadius:
                       '10px',
+                    transition:
+                      'width 0.5s ease',
                   }}
                 />
               </div>
-
-              <button
-                onClick={
-                  handleStartLearning
-                }
-                disabled={
-                  lessonsLoading
-                }
-                style={{
-                  width:
-                    '100%',
-                  padding:
-                    '14px',
-                  marginTop:
-                    '20px',
-                  background:
-                    lessonsLoading
-                      ? '#888'
-                      : 'linear-gradient(90deg, #003366, #005599)',
-                  color:
-                    'white',
-                  border:
-                    'none',
-                  borderRadius:
-                    '10px',
-                  fontWeight:
-                    '700',
-                  fontSize:
-                    '1rem',
-                  cursor:
-                    lessonsLoading
-                      ? 'not-allowed'
-                      : 'pointer',
-                }}
-              >
-                <i
-                  className={
-                    lessonsLoading
-                      ? 'fas fa-spinner fa-spin'
-                      : 'fas fa-play-circle'
-                  }
-                />{' '}
-                {lessonsLoading
-                  ? 'Loading Lessons...'
-                  : 'Start Learning'}
-              </button>
             </>
           ) : (
             <>
@@ -2302,7 +1424,7 @@ const Courses = () => {
                 }}
               >
                 <i
-                  className={
+[7/23/2026 10:48 PM] Ah Mm: className={
                     enrolling
                       ? 'fas fa-spinner fa-spin'
                       : 'fas fa-graduation-cap'
@@ -2325,6 +1447,9 @@ const Courses = () => {
                     'successfully'
                   ) ||
                   message.includes(
+                    'completed'
+                  ) ||
+                  message.includes(
                     'Congratulations'
                   )
                     ? '#10b981'
@@ -2338,7 +1463,527 @@ const Courses = () => {
           )}
         </div>
 
+        {/* ================================================== */}
+        {/* LEARNING AREA */}
+        {/* يظهر فقط بعد التسجيل */}
+        {/* ================================================== */}
+
+        {enrollment && (
+          <div
+            style={{
+              display:
+                'grid',
+              gridTemplateColumns:
+                '280px minmax(0, 1fr)',
+              gap:
+                '25px',
+              alignItems:
+                'start',
+              marginBottom:
+                '40px',
+            }}
+          >
+            {/* ================================================= */}
+            {/* LESSON SIDEBAR */}
+            {/* ================================================= */}
+
+            <aside
+              style={{
+                background:
+                  dm.reviewBg,
+                borderRadius:
+                  '15px',
+                padding:
+                  '20px',
+                boxShadow:
+                  dm.shadow,
+                position:
+                  'sticky',
+                top:
+                  '20px',
+              }}
+            >
+              <h3
+                style={{
+                  color:
+                    dm.heading,
+                  marginTop:
+                    0,
+                }}
+              >
+                <i className="fas fa-list" />{' '}
+                Course Lessons
+              </h3>
+
+              {lessonsLoading ? (
+                <p
+                  style={{
+                    color:
+                      dm.subtext,
+                    textAlign:
+                      'center',
+                  }}
+                >
+                  <i className="fas fa-spinner fa-spin" />{' '}
+                  Loading lessons...
+                </p>
+              ) : lessons.length ===
+                0 ? (
+                <p
+                  style={{
+                    color:
+                      dm.subtext,
+                    textAlign:
+                      'center',
+                  }}
+                >
+                  No lessons available yet.
+                </p>
+              ) : (
+                <div
+                  style={{
+                    display:
+                      'flex',
+                    flexDirection:
+                      'column',
+                    gap:
+                      '10px',
+                    marginTop:
+                      '20px',
+                  }}
+                >
+                  {lessons.map(
+                    (
+                      lesson,
+                      index
+                    ) => {
+                      const completed =
+                        isLessonCompleted(
+                          lesson.id
+                        );
+
+                      const active =
+                        selectedLesson?.id ===
+                        lesson.id;
+
+                      return (
+                        <button
+                          key={
+                            lesson.id
+                          }
+                          onClick={() =>
+[7/23/2026 10:48 PM] Ah Mm: setSelectedLesson(
+                              lesson
+                            )
+                          }
+                          style={{
+                            width:
+                              '100%',
+                            textAlign:
+                              'left',
+                            padding:
+                              '14px',
+                            border:
+                              active
+                                ? 2px solid ${dm.heading}
+                                : 1px solid ${dm.cardBorder},
+                            borderRadius:
+                              '10px',
+                            background:
+                              completed
+                                ? dm.lessonCompleted
+                                : active
+                                ? dm.lessonActive
+                                : 'transparent',
+                            color:
+                              dm.text,
+                            cursor:
+                              'pointer',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display:
+                                'flex',
+                              alignItems:
+                                'center',
+                              gap:
+                                '10px',
+                            }}
+                          >
+                            <span
+                              style={{
+                                minWidth:
+                                  '28px',
+                                height:
+                                  '28px',
+                                borderRadius:
+                                  '50%',
+                                display:
+                                  'flex',
+                                alignItems:
+                                  'center',
+                                justifyContent:
+                                  'center',
+                                background:
+                                  completed
+                                    ? '#10b981'
+                                    : dm.btnBack,
+                                color:
+                                  'white',
+                                fontSize:
+                                  '0.8rem',
+                              }}
+                            >
+                              {completed ? (
+                                <i className="fas fa-check" />
+                              ) : (
+                                index +
+                                1
+                              )}
+                            </span>
+
+                            <span
+                              style={{
+                                fontWeight:
+                                  '600',
+                              }}
+                            >
+                              {lesson.title}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+              )}
+            </aside>
+
+            {/* ================================================= */}
+            {/* LESSON CONTENT */}
+            {/* ================================================= */}
+
+            <main>
+              {!selectedLesson ? (
+                <div
+                  style={{
+                    background:
+                      dm.reviewBg,
+                    borderRadius:
+                      '15px',
+                    padding:
+                      '50px 30px',
+                    boxShadow:
+                      dm.shadow,
+                    textAlign:
+                      'center',
+                  }}
+                >
+                  <i
+                    className="fas fa-book-reader"
+                    style={{
+                      fontSize:
+[7/23/2026 10:48 PM] Ah Mm: '3rem',
+                      color:
+                        dm.heading,
+                    }}
+                  />
+
+                  <h2
+                    style={{
+                      color:
+                        dm.heading,
+                    }}
+                  >
+                    Start Learning
+                  </h2>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    background:
+                      dm.reviewBg,
+                    borderRadius:
+                      '15px',
+                    padding:
+                      '30px',
+                    boxShadow:
+                      dm.shadow,
+                  }}
+                >
+                  {/* LESSON HEADER */}
+
+                  <div
+                    style={{
+                      marginBottom:
+                        '25px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        color:
+                          dm.subtext,
+                        fontSize:
+                          '0.9rem',
+                      }}
+                    >
+                      Lesson{' '}
+                      {lessons.findIndex(
+                        (lesson) =>
+                          lesson.id ===
+                          selectedLesson.id
+                      ) + 1}{' '}
+                      of{' '}
+                      {lessons.length}
+                    </span>
+
+                    <h2
+                      style={{
+                        color:
+                          dm.heading,
+                        marginTop:
+                          '8px',
+                      }}
+                    >
+                      {selectedLesson.title}
+                    </h2>
+
+                    {selectedLesson.description && (
+                      <p
+                        style={{
+                          color:
+                            dm.text,
+                          lineHeight:
+                            '1.7',
+                        }}
+                      >
+                        {
+                          selectedLesson.description
+                        }
+                      </p>
+                    )}
+                  </div>
+
+                  {/* VIDEO */}
+
+                  {selectedLesson.video_uri && (
+                    <div
+                      style={{
+                        width:
+                          '100%',
+                        marginBottom:
+                          '25px',
+                        borderRadius:
+                          '12px',
+                        overflow:
+                          'hidden',
+                        background:
+                          '#000',
+                      }}
+                    >
+                      <video
+                        src={
+                          selectedLesson.video_uri
+                        }
+                        controls
+                        style={{
+                          width:
+                            '100%',
+                          display:
+                            'block',
+                          maxHeight:
+                            '550px',
+                        }}
+                      >
+                        Your browser does not support video playback.
+                      </video>
+                    </div>
+                  )}
+
+                  {/* CONTENT */}
+
+                  {selectedLesson.content && (
+                    <div
+                      style={{
+                        color:
+                          dm.text,
+                        lineHeight:
+                          '1.8',
+                        fontSize:
+                          '1rem',
+                        whiteSpace:
+                          'pre-wrap',
+                        marginBottom:
+                          '30px',
+                      }}
+                    >
+                      {
+                        selectedLesson.content
+[7/23/2026 10:48 PM] Ah Mm: }
+                    </div>
+                  )}
+
+                  {/* LESSON ACTIONS */}
+
+                  <div
+                    style={{
+                      display:
+                        'flex',
+                      gap:
+                        '10px',
+                      flexWrap:
+                        'wrap',
+                      borderTop:
+                        1px solid ${dm.cardBorder},
+                      paddingTop:
+                        '20px',
+                    }}
+                  >
+                    <button
+                      onClick={
+                        handlePreviousLesson
+                      }
+                      disabled={
+                        lessons.findIndex(
+                          (lesson) =>
+                            lesson.id ===
+                            selectedLesson.id
+                        ) <= 0
+                      }
+                      style={{
+                        flex:
+                          '1 1 150px',
+                        padding:
+                          '12px',
+                        border:
+                          1px solid ${dm.cardBorder},
+                        borderRadius:
+                          '8px',
+                        background:
+                          'transparent',
+                        color:
+                          dm.text,
+                        cursor:
+                          'pointer',
+                        opacity:
+                          lessons.findIndex(
+                            (lesson) =>
+                              lesson.id ===
+                              selectedLesson.id
+                          ) <= 0
+                            ? 0.5
+                            : 1,
+                      }}
+                    >
+                      <i className="fas fa-arrow-left" />{' '}
+                      Previous
+                    </button>
+
+                    <button
+                      onClick={
+                        handleCompleteLesson
+                      }
+                      disabled={
+                        lessonSaving ||
+                        isLessonCompleted(
+                          selectedLesson.id
+                        )
+                      }
+                      style={{
+                        flex:
+                          '2 1 200px',
+                        padding:
+                          '12px',
+                        border:
+                          'none',
+                        borderRadius:
+                          '8px',
+                        background:
+                          isLessonCompleted(
+                            selectedLesson.id
+                          )
+                            ? '#10b981'
+                            : dm.btnBack,
+                        color:
+                          'white',
+                        fontWeight:
+                          '700',
+                        cursor:
+                          'pointer',
+                      }}
+                    >
+                      <i
+                        className={
+                          lessonSaving
+                            ? 'fas fa-spinner fa-spin'
+                            : isLessonCompleted(
+                                selectedLesson.id
+                              )
+                            ? 'fas fa-check'
+                            : 'fas fa-check-circle'
+                        }
+                      />{' '}
+                      {lessonSaving
+                        ? 'Saving...'
+                        : isLessonCompleted(
+                            selectedLesson.id
+                          )
+                        ? 'Lesson Completed'
+                        : 'Mark as Completed'}
+                    </button>
+
+                    <button
+                      onClick={
+                        handleNextLesson
+                      }
+                      disabled={
+                        lessons.findIndex(
+                          (lesson) =>
+[7/23/2026 10:48 PM] Ah Mm: lesson.id ===
+                            selectedLesson.id
+                        ) >=
+                        lessons.length - 1
+                      }
+                      style={{
+                        flex:
+                          '1 1 150px',
+                        padding:
+                          '12px',
+                        border:
+                          'none',
+                        borderRadius:
+                          '8px',
+                        background:
+                          dm.btnBack,
+                        color:
+                          'white',
+                        cursor:
+                          'pointer',
+                        opacity:
+                          lessons.findIndex(
+                            (lesson) =>
+                              lesson.id ===
+                              selectedLesson.id
+                          ) >=
+                          lessons.length - 1
+                            ? 0.5
+                            : 1,
+                      }}
+                    >
+                      Next{' '}
+                      <i className="fas fa-arrow-right" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </main>
+          </div>
+        )}
+
+        {/* ================================================== */}
         {/* REVIEWS */}
+        {/* ================================================== */}
 
         <div
           style={{
@@ -2362,7 +2007,8 @@ const Courses = () => {
                 '20px',
             }}
           >
-            <i className="fas fa-star" /> Reviews
+            <i className="fas fa-star" />{' '}
+            Reviews
           </h2>
 
           {reviewLoading ? (
@@ -2400,7 +2046,7 @@ const Courses = () => {
                     padding:
                       '15px 0',
                     borderBottom:
-                      `1px solid ${dm.cardBorder}`,
+                      1px solid ${dm.cardBorder},
                   }}
                 >
                   <StarRating
@@ -2429,7 +2075,9 @@ const Courses = () => {
           )}
         </div>
 
+        {/* ================================================== */}
         {/* ADD REVIEW */}
+        {/* ================================================== */}
 
         {!submitted ? (
           <div
@@ -2444,7 +2092,7 @@ const Courses = () => {
                 dm.shadow,
             }}
           >
-            <h2
+[7/23/2026 10:48 PM] Ah Mm: <h2
               style={{
                 color:
                   dm.heading,
@@ -2452,7 +2100,8 @@ const Courses = () => {
                   '20px',
               }}
             >
-              <i className="fas fa-pen" /> Add Your Review
+              <i className="fas fa-pen" />{' '}
+              Add Your Review
             </h2>
 
             {!user ? (
@@ -2510,7 +2159,7 @@ const Courses = () => {
                     borderRadius:
                       '8px',
                     border:
-                      `1px solid ${dm.inputBorder}`,
+                      1px solid ${dm.inputBorder},
                     fontSize:
                       '1rem',
                     marginTop:
@@ -2598,10 +2247,46 @@ const Courses = () => {
                   dm.heading,
               }}
             >
-              Review Submitted! Thank you 🎉
+[7/23/2026 10:48 PM] Ah Mm: Review Submitted! Thank you 🎉
             </h3>
           </div>
         )}
+
+        {/* ================================================== */}
+        {/* RESPONSIVE + ANIMATIONS */}
+        {/* ================================================== */}
+
+        <style>
+          {`
+            @keyframes slideUp {
+              from {
+                opacity: 0;
+                transform: translateY(30px);
+              }
+
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+
+            @keyframes fadeIn {
+              from {
+                opacity: 0;
+              }
+
+              to {
+                opacity: 1;
+              }
+            }
+
+            @media (max-width: 800px) {
+              .learning-layout {
+                grid-template-columns: 1fr !important;
+              }
+            }
+          `}
+        </style>
       </section>
     );
   }
@@ -2620,14 +2305,17 @@ const Courses = () => {
           '100vh',
         padding:
           '40px 20px',
+
         opacity:
           pageVisible
             ? 1
             : 0,
+
         transform:
           pageVisible
             ? 'translateY(0)'
             : 'translateY(20px)',
+
         transition:
           'opacity 0.7s ease, transform 0.7s ease',
       }}
@@ -2640,7 +2328,8 @@ const Courses = () => {
             'center',
         }}
       >
-        <i className="fas fa-book-open" /> Our Courses
+        <i className="fas fa-book-open" />{' '}
+        Our Courses
       </h1>
 
       {/* SEARCH */}
@@ -2699,7 +2388,7 @@ const Courses = () => {
               borderRadius:
                 '10px',
               border:
-                `2px solid ${dm.inputBorder}`,
+                2px solid ${dm.inputBorder},
               fontSize:
                 '1rem',
               outline:
@@ -2745,7 +2434,229 @@ const Courses = () => {
                   borderRadius:
                     '20px',
                   border:
-                    `2px solid ${dm.catBorder}`,
+                    2px solid ${dm.catBorder},
                   background:
                     category ===
-                    
+                    cat
+[7/23/2026 10:48 PM] Ah Mm: ? dm.catActiveBg
+                      : 'transparent',
+                  color:
+                    category ===
+                    cat
+                      ? dm.catActive
+                      : dm.catInactive,
+                  fontWeight:
+                    '600',
+                  cursor:
+                    'pointer',
+                }}
+              >
+                {cat}
+              </button>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* COURSES */}
+
+      {filtered.length ===
+      0 ? (
+        <div
+          style={{
+            textAlign:
+              'center',
+            padding:
+              '60px',
+            color:
+              dm.subtext,
+          }}
+        >
+          <i
+            className="fas fa-search"
+            style={{
+              fontSize:
+                '3rem',
+              marginBottom:
+                '15px',
+            }}
+          />
+
+          <p>
+            No courses found
+          </p>
+        </div>
+      ) : (
+        <div className="courses-container">
+          {filtered.map(
+            (
+              course,
+              index
+            ) => (
+              <div
+                key={
+                  course.id
+                }
+                className="course-card"
+                onClick={() =>
+                  setSelected(
+                    course
+                  )
+                }
+                style={{
+                  background:
+                    dm.card,
+                  boxShadow:
+                    dm.shadow,
+                  animation:
+                    'courseCardEntrance 0.7s ease both',
+                  animationDelay:
+                    ${index * 0.1}s,
+                  cursor:
+                    'pointer',
+                }}
+              >
+                <div
+                  className="card-icon"
+                  style={{
+                    color:
+                      '#f0a500',
+                  }}
+                >
+                  <i className="fas fa-book-open" />
+                </div>
+
+                {course.category && (
+                  <span
+                    style={{
+                      background:
+                        dm.tagBg,
+                      padding:
+                        '4px 12px',
+                      borderRadius:
+                        '20px',
+                      fontSize:
+                        '0.8rem',
+                      color:
+                        dm.tagColor,
+                      marginBottom:
+                        '10px',
+                      display:
+                        'inline-block',
+                    }}
+                  >
+                    {
+                      course.category
+                    }
+                  </span>
+                )}
+
+                <h3
+                  style={{
+                    color:
+                      dm.heading,
+                  }}
+                >
+                  {
+                    course.title
+                  }
+                </h3>
+
+                <p
+                  style={{
+                    color:
+                      dm.text,
+                  }}
+                >
+                  Explore this course and start learning today.
+                </p>
+
+                <div
+                  style={{
+                    display:
+                      'flex',
+                    justifyContent:
+                      'space-between',
+                    margin:
+                      '15px 0',
+                    color:
+                      dm.subtext,
+                    fontSize:
+                      '0.85rem',
+                  }}
+                >
+                  <span>
+                    <i className="fas fa-users" />{' '}
+                    {course.students ||
+                      0}
+                  </span>
+
+                  <span>
+                    <i
+                      className="fas fa-star"
+                      style={{
+                        color:
+                          '#f0a500',
+                      }}
+[7/23/2026 10:48 PM] Ah Mm: />{' '}
+                    {course.rating ||
+                      '0'}
+                  </span>
+                </div>
+
+                <button
+                  onClick={(
+                    e
+                  ) => {
+                    e.stopPropagation();
+
+                    setSelected(
+                      course
+                    );
+                  }}
+                  style={{
+                    background:
+                      dm.btnBack,
+                    color:
+                      'white',
+                    border:
+                      'none',
+                    padding:
+                      '10px 20px',
+                    borderRadius:
+                      '8px',
+                    cursor:
+                      'pointer',
+                    fontWeight:
+                      '600',
+                  }}
+                >
+                  <i className="fas fa-arrow-right" />{' '}
+                  View Details
+                </button>
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      <style>
+        {`
+          @keyframes courseCardEntrance {
+            from {
+              opacity: 0;
+              transform: translateY(35px) scale(0.96);
+            }
+
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+        `}
+      </style>
+    </section>
+  );
+};
+
+export default Courses;
